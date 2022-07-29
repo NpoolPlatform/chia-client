@@ -7,7 +7,35 @@ import (
 )
 
 func RenameColumn(ctx context.Context, conn dialect.ExecQuerier, table, srcColumn, dstColumn, columnType string, unsigned bool) error {
+	rows := sql.Rows{}
+
 	query, args := sql.
+		Select("datetime_precision").
+		From(sql.Table("`information_schema`.`tables`")).
+		Where(
+			sql.And(
+				sql.EQ("table_name", table),
+			),
+		).
+		Count().
+		Query()
+	if err := conn.Query(ctx, query, args, &rows); err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		count := 0
+		if err := rows.Scan(&count); err != nil {
+			return err
+		}
+		if count == 0 {
+			rows.Close()
+			return nil
+		}
+	}
+	rows.Close()
+
+	query, args = sql.
 		Select("datetime_precision").
 		From(sql.Table("`information_schema`.`columns`")).
 		Where(
@@ -19,7 +47,6 @@ func RenameColumn(ctx context.Context, conn dialect.ExecQuerier, table, srcColum
 		Count().
 		Query()
 
-	rows := sql.Rows{}
 	if err := conn.Query(ctx, query, args, &rows); err != nil {
 		return err
 	}

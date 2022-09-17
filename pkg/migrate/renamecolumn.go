@@ -72,7 +72,7 @@ func columnExist(ctx context.Context, conn dialect.ExecQuerier, table, column st
 	return false, nil
 }
 
-func RenameColumn(ctx context.Context, conn dialect.ExecQuerier, table, srcColumn, dstColumn, columnType string, unsigned bool) error {
+func RenameColumn(ctx context.Context, conn dialect.ExecQuerier, table, srcColumn, dstColumn, columnType string, unsigned bool, nilable bool) error {
 	if exist, err := tableExist(ctx, conn, table); err != nil || !exist {
 		return err
 	}
@@ -93,6 +93,9 @@ func RenameColumn(ctx context.Context, conn dialect.ExecQuerier, table, srcColum
 		Query()
 	if unsigned {
 		query = query + " unsigned"
+	}
+	if !nilable {
+		query = query + " NOT NULL"
 	}
 	if err := conn.Exec(ctx, query, args, nil); err != nil {
 		return err

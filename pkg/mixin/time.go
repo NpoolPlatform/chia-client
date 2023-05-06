@@ -4,29 +4,20 @@ import (
 	"time"
 
 	"entgo.io/ent"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 )
 
-type Schema struct {
+type TimeMixin struct {
 	mixin.Schema
 }
 
-type Policy interface {
+type TimePolicy interface {
 	Policy() ent.Policy
 }
 
-func (Schema) Fields() []ent.Field {
-	incrementalEnabled := true
+func (TimeMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.
-			Uint32("auto_id").
-			Unique().
-			Annotations(
-				entsql.Annotation{
-					Incremental: &incrementalEnabled,
-				}),
 		field.
 			Uint32("created_at").
 			DefaultFunc(func() uint32 {

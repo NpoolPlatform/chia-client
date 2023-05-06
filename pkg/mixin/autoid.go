@@ -12,14 +12,14 @@ type AutoIDMixin struct {
 }
 
 func (AutoIDMixin) Fields() []ent.Field {
-	incrementalEnabled := true
+	enabled := true
 	return []ent.Field{
 		field.
-			Uint32("auto_id").
+			Int("auto_id").
 			Unique().
 			Annotations(
 				entsql.Annotation{
-					Incremental: &incrementalEnabled,
+					Incremental: &enabled,
 				}),
 	}
 }

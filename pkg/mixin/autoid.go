@@ -7,11 +7,11 @@ import (
 	"entgo.io/ent/schema/mixin"
 )
 
-type AuthIDMixin struct {
+type AutoIDMixin struct {
 	mixin.Schema
 }
 
-func (AuthIDMixin) Fields() []ent.Field {
+func (AutoIDMixin) Fields() []ent.Field {
 	incrementalEnabled := true
 	return []ent.Field{
 		field.

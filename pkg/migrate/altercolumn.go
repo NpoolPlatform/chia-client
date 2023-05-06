@@ -110,7 +110,7 @@ func alterColumn(
 	if !nilable {
 		query = query + " NOT NULL"
 	}
-	if !autoIncrement {
+	if autoIncrement {
 		query = query + " AUTO_INCREMENT"
 	}
 	if err := conn.Exec(ctx, query, args, nil); err != nil {

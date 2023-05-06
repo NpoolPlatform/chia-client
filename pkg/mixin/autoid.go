@@ -15,7 +15,7 @@ func (AutoIDMixin) Fields() []ent.Field {
 	enabled := true
 	return []ent.Field{
 		field.
-			Uint32("auto_id").
+			Int("auto_id").
 			Unique().
 			Annotations(
 				entsql.Annotation{

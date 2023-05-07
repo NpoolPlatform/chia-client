@@ -17,9 +17,8 @@ func (AutoIDMixin) Fields() []ent.Field {
 		field.
 			Uint32("auto_id").
 			Unique().
-			Annotations(
-				entsql.Annotation{
-					Incremental: &enabled,
-				}),
+			Annotations(entsql.Annotation{
+				Incremental: &enabled,
+			}),
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
+	"github.com/google/uuid"
 )
 
 type AutoIDMixin struct {
@@ -14,6 +15,10 @@ type AutoIDMixin struct {
 func (AutoIDMixin) Fields() []ent.Field {
 	enabled := true
 	return []ent.Field{
+		field.
+			UUID("id", uuid.UUID{}).
+			Unique().
+			Default(uuid.New),
 		field.
 			Uint32("auto_id").
 			Unique().

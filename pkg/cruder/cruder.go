@@ -14,6 +14,8 @@ const (
 	NIN      = "nin"
 	BETWEEN  = "between"
 	NBETWEEN = "nbetween"
+	OVERLAP  = "overlap"
+	NOVERLAP = "noverlap"
 )
 
 type Cond struct {

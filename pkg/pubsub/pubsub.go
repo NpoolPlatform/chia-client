@@ -3,19 +3,12 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
-	crudermixin "github.com/NpoolPlatform/libent-cruder/pkg/mixin"
 	"github.com/google/uuid"
 )
 
 // PubsubMessage holds the schema definition for the PubsubMessage entity.
 type PubsubMessage struct {
 	ent.Schema
-}
-
-func (PubsubMessage) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		crudermixin.AutoIDMixin{},
-	}
 }
 
 // Fields of the PubsubMessage.

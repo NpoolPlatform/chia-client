@@ -3,6 +3,7 @@ package mixin
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
 	"github.com/google/uuid"
 )
@@ -17,5 +18,11 @@ func (AutoIDMixin) Fields() []ent.Field {
 		field.UUID("ent_id", uuid.UUID{}).
 			Unique().
 			Default(uuid.New),
+	}
+}
+
+func (AutoIDMixin) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("ent_id").Unique(),
 	}
 }

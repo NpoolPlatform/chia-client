@@ -14,7 +14,7 @@ type AutoIDMixin struct {
 
 func (AutoIDMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("id"),
+		field.Uint32("id"),
 		field.UUID("ent_id", uuid.UUID{}).
 			Unique().
 			Default(uuid.New),

@@ -1,7 +1,7 @@
 package cruder
 
 import (
-	"fmt"
+	"errors"
 )
 
-const ErrUpdateNothing = fmt.Errorf("update nothing")
+var ErrUpdateNothing = errors.New("update nothing")

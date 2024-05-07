@@ -10,11 +10,11 @@ import (
 
 type AutoIDMixin struct {
 	mixin.Schema
+	CommonEntMixin
 }
 
 func (AutoIDMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.Uint32("id"),
 		field.UUID("ent_id", uuid.UUID{}).
 			Unique().
 			Default(uuid.New),

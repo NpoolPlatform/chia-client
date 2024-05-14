@@ -4,4 +4,7 @@ import (
 	"errors"
 )
 
-var ErrUpdateNothing = errors.New("update nothing")
+var (
+	ErrCreateNothing = errors.New("create nothing")
+	ErrUpdateNothing = errors.New("update nothing")
+)

@@ -54,7 +54,7 @@ func GenAccountBySKBytes(skBytes []byte) (*Account, error) {
 	return chiaAcc, nil
 }
 
-func (ca *Account) GetPuzzleHash(mainnet bool) (string, error) {
+func (ca *Account) GetAddress(mainnet bool) (string, error) {
 	prefix := PREFIX
 	if !mainnet {
 		prefix = TPREFIX
@@ -64,6 +64,15 @@ func (ca *Account) GetPuzzleHash(mainnet bool) (string, error) {
 		return "", err
 	}
 	return puzzlehash.NewAddressFromPkBytes(pkBytes, prefix)
+}
+
+func (ca *Account) GetPuzzleHash() (string, error) {
+	pkBytes, err := ca.PublicKey().MarshalBinary()
+	if err != nil {
+		return "", err
+	}
+
+	return puzzlehash.NewPuzzleHashFromPkBytes(pkBytes)
 }
 
 func (ca *Account) genSKFromSeed() (err error) {

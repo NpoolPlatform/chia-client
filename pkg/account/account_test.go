@@ -69,7 +69,7 @@ func TestPuzzleHash(t *testing.T) {
 
 	assert.Equal(t, skBytes, priBytes)
 
-	phStr, err := acc1.GetPuzzleHash(false)
+	phStr, err := acc1.GetAddress(false)
 	if !assert.Nil(t, err) {
 		t.Fatal(err)
 	}

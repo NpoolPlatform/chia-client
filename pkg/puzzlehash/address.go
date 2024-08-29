@@ -39,7 +39,25 @@ func NewAddressFromPkBytes(pkBytes []byte, prefix string) (string, error) {
 	return NewAddressFromPK(&p, prefix)
 }
 
+func NewPuzzleHashFromPkBytes(pkBytes []byte) (string, error) {
+	var p bls.G1
+	err := p.SetBytes(pkBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(NewPuzzleHashFromPK(&p)), nil
+}
+
 func NewAddressFromPK(pk *bls.G1, prefix string) (string, error) {
+	bits, err := bech32.ConvertBits(NewPuzzleHashFromPK(pk), 8, 5, true)
+	if err != nil {
+		return "", nil
+	}
+	return bech32.EncodeM(prefix, bits)
+}
+
+func NewPuzzleHashFromPK(pk *bls.G1) []byte {
 	expPk := opPubKeyForExp(
 		opSha256(
 			pk.BytesCompressed(),
@@ -52,11 +70,7 @@ func NewAddressFromPK(pk *bls.G1, prefix string) (string, error) {
 		&expPk,
 	)
 
-	bits, err := bech32.ConvertBits(genAddress(syntheticKeyBytes), 8, 5, true)
-	if err != nil {
-		return "", nil
-	}
-	return bech32.EncodeM(prefix, bits)
+	return genAddress(syntheticKeyBytes)
 }
 
 func NewAddressFromPKHex(pkHex, prefix string) (string, error) {

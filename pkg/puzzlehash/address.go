@@ -83,7 +83,7 @@ func NewAddressFromPKHex(pkHex, prefix string) (string, error) {
 }
 
 func genAddress(pkBytes []byte) []byte {
-	programString := newProgramString(pkBytes)
+	programString := NewProgramString(pkBytes)
 
 	var (
 		hash      = sha256.New()
@@ -143,7 +143,7 @@ func genAddress(pkBytes []byte) []byte {
 	return hashStack.hashes[0]
 }
 
-func newProgramString(pkBytes []byte) string {
+func NewProgramString(pkBytes []byte) string {
 	return "" +
 		"ff02ffff01ff02ffff01ff02ffff03ff0bffff01ff02ffff03ffff09ff05ffff1dff0bffff1effff0bff0bffff02ff06fff" +
 		"f04ff02ffff04ff17ff8080808080808080ffff01ff02ff17ff2f80ffff01ff088080ff0180ffff01ff04ffff04ff04ffff" +

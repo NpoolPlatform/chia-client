@@ -1,8 +1,8 @@
 build-darwin:
-	rustup target add x86_64-apple-darwin
-	cargo build --target x86_64-apple-darwin --release
+	rustup target add aarch64-apple-darwin
+	cargo build --target aarch64-apple-darwin --release
 	mkdir -p ./libs
-	cp ./target/x86_64-apple-darwin/release/libchia_capi.a ./libs/libchia_capi_x86_64-apple-darwin20.a
+	cp ./target/aarch64-apple-darwin/release/libchia_capi.a ./libs/libchia_capi_aarch64-apple-darwin20.a
 
 build-musl:
 	rustup target add x86_64-unknown-linux-musl

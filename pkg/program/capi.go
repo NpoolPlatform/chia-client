@@ -1,5 +1,5 @@
 package native
 
-// #cgo LDFLAGS: -L./capi/libs -lchia_capi_x86_64-unknown-linux-musl
+// #cgo LDFLAGS: -L./capi/libs -lchia_capi_x86_64-unknown-linux-gnu
 // #include <stdlib.h>
 // #include "capi/include/chia_capi.h"

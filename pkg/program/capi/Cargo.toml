@@ -1,0 +1,11 @@
+[package]
+name = "chia_capi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "chia_capi"
+crate-type = ["staticlib"]
+
+[dependencies]
+# chia_rs = { git = "https://github.com/Chia-Network/chia_rs.git", tag = "0.13.0"}

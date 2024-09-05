@@ -7,76 +7,246 @@ import (
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
 	puzzle1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
-	"github.com/NpoolPlatform/chia-client/pkg/types"
+	types "github.com/NpoolPlatform/chia-client/pkg/types"
+	types1 "github.com/chia-network/go-chia-libs/pkg/types"
 	"github.com/shopspring/decimal"
 )
 
-// TODO
-func SelectCoins(amount decimal.Decimal) ([]types.Coin, error) {
-	return []types.Coin{}, nil
+type txHandler struct {
+	primaries           *[]types.Payment
+	amount              *decimal.Decimal
+	fee                 *decimal.Decimal
+	totalBalance        *decimal.Decimal
+	newPuzzleHash       *string
+	changePuzzleHash    *string
+	coins               *[]types1.Coin
+	primaryCoin         *types1.Coin
+	addition            *string
+	announcementMessage *string
+	announcement        *string
+	announcementID      *string
+	puzzle              *string
+	spends              *[]types.CoinSpend
 }
 
 // TODO
-func GetSpendableBalance() (decimal.Decimal, error) {
-	return decimal.RequireFromString("0"), nil
-}
-
-// TODO
-func DecoratedTargetPuzzleHash(innerPuzzle string, newPuzzleHash string) (types.Bytes32, error) {
-	puzzleHash, err := types.Bytes32FromHexString(newPuzzleHash)
-	if err != nil {
-		return types.Bytes32{}, err
+func (h *txHandler) selectCoins(amount decimal.Decimal) error {
+	coins := []types1.Coin{}
+	if len(coins) == 0 {
+		return wlog.Errorf("coin not available")
 	}
-	// TODO
-	return puzzleHash, nil
+	h.primaryCoin = &coins[0]
+	h.coins = &coins
+	return nil
 }
 
 // TODO
-func GetNewPuzzleHash() (types.Bytes32, error) {
-	return types.Bytes32{}, nil
+func (h *txHandler) getSpendableBalance() error {
+	balance := decimal.RequireFromString("10000")
+	h.totalBalance = &balance
+	return nil
 }
 
-// TODO
-func MakeSolution(primaries []types.Payment, fee decimal.Decimal, conditions []types.Condition) (types.SerializedProgram, error) {
-	return types.SerializedProgram{}, nil
+func (h *txHandler) getNewPuzzleHash() (string, error) {
+	return "", nil
 }
 
-// TODO
-func MakeSpend(coin types.Coin, puzzleReveal types.SerializedProgram, solution types.SerializedProgram) (types.CoinSpend, error) {
-	return types.CoinSpend{}, nil
+func (h *txHandler) getComplementRepresentation(amount string) (string, error) {
+	number, err := decimal.NewFromString(amount)
+	if err != nil {
+		return "", err
+	}
+	if number.Sign() < 0 {
+		return "", wlog.Errorf("invalid amount")
+	}
+
+	bigInt := number.BigInt()
+	bytes := bigInt.Bytes()
+
+	if len(bytes) > 0 && bytes[0] >= 0x80 {
+		bytes = append([]byte{0x00}, bytes...)
+	}
+
+	hexRepresentation := ""
+	for _, b := range bytes {
+		hexRepresentation += fmt.Sprintf("%02X", b)
+	}
+
+	prefix := "ff"
+	if len(bytes) > 1 {
+		prefix = "ff8"
+	}
+
+	return prefix + fmt.Sprintf("%d", len(bytes)) + hexRepresentation, nil
 }
 
-func stdHash(myBytes []types.Bytes32) string {
+func (h *txHandler) makeSpend(payments []types.Payment, fee decimal.Decimal) (string, error) {
+	spend := ""
+	for _, payment := range payments {
+		spend += "80ffff33ffa0"
+		spend += payment.PuzzleHash
+		amount, err := h.getComplementRepresentation(payment.Amount)
+		if err != nil {
+			return "", err
+		}
+		spend += amount
+	}
+
+	if fee.Sign() > 0 {
+		presentation, err := h.getComplementRepresentation(fee.String())
+		if err != nil {
+			return "", err
+		}
+		spend += "80ffff34ff" + presentation
+	}
+	return spend, nil
+}
+
+func (h *txHandler) stdHash(myBytes []types1.Bytes32) string {
 	newBytes := sha256.New()
 	for _, b := range myBytes {
 		newBytes.Write(b[:])
 	}
-	newBytes.Sum(nil)
-	_bytes := fmt.Sprintf("%x", newBytes)
-
+	_bytes := fmt.Sprintf("%x", newBytes.Sum(nil))
 	return _bytes
 }
 
-// TODO
-func CreateCoinAnnouncement(message string) types.Condition {
-	return &types.MyCondition{}
+func (h *txHandler) createCoinAnnouncement() {
+	announcement := "0xff80ffff01ffff3cffa0" + *h.announcementMessage
+	h.announcement = &announcement
 }
 
-// TODO
-func AssertCoinAnnouncement(assertedID string, assertedMsg string) types.Condition {
-	return &types.MyCondition{}
+func (h *txHandler) assertCoinAnnouncement() error {
+	message, err := types1.Bytes32FromHexString(*h.announcementMessage)
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	announcementID := h.stdHash([]types1.Bytes32{h.primaryCoin.ID(), message})
+	h.announcementID = &announcementID
+	return nil
 }
 
-// TODO
-func GetPuzzleProgramFromPuzzle(puzzle string) types.SerializedProgram {
-	return types.SerializedProgram{}
+func (h *txHandler) generateMessage() error {
+	messages := []types1.Bytes32{}
+	for _, coin := range *h.coins {
+		messages = append(messages, coin.ID())
+	}
+
+	for _, primary := range *h.primaries {
+		puzzleHash, err := types1.Bytes32FromHexString(primary.PuzzleHash)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		amount, err := decimal.NewFromString(primary.Amount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		c := types1.Coin{
+			ParentCoinInfo: h.primaryCoin.ID(),
+			PuzzleHash:     puzzleHash,
+			Amount:         amount.BigInt().Uint64(),
+		}
+		messages = append(messages, c.ID())
+	}
+	message := h.stdHash(messages)
+	h.announcementMessage = &message
+	return nil
 }
 
-func GenerateUnsignedTransaction(
-	amount string,
-	newPuzzleHash string,
-	fee string,
-) ([]types.CoinSpend, error) {
+func (h *txHandler) generatePrimaries() error {
+	spendAmount := decimal.NewFromInt(0)
+	for _, coin := range *h.coins {
+		coinAmount := fmt.Sprintf("%d", coin.Amount)
+		spendAmount = spendAmount.Add(decimal.RequireFromString(coinAmount))
+	}
+
+	totalAmount := h.amount.Add(*h.fee)
+	change := spendAmount.Sub(totalAmount)
+	if change.Cmp(decimal.NewFromInt(0)) < 0 {
+		return wlog.Errorf("negative change %s", change)
+	}
+
+	primaries := []types.Payment{}
+	primaries = append(primaries, types.Payment{
+		PuzzleHash: *h.newPuzzleHash,
+		Amount:     h.amount.String(),
+	})
+
+	if change.Cmp(decimal.NewFromInt(0)) > 0 {
+		changePuzzleHash, err := h.getNewPuzzleHash()
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		primaries = append(primaries, types.Payment{
+			PuzzleHash: changePuzzleHash,
+			Amount:     change.String(),
+		})
+	}
+	h.primaries = &primaries
+	return nil
+}
+
+// TODO:FinalPublicKey
+func (h *txHandler) generatePuzzle() error {
+	puzzle := puzzle1.NewProgramString([]byte{})
+	h.puzzle = &puzzle
+	return nil
+}
+
+func (h *txHandler) checkBalance() error {
+	totalAmount := h.amount.Add(*h.fee)
+	if err := h.getSpendableBalance(); err != nil {
+		return wlog.WrapError(err)
+	}
+	if totalAmount.Cmp(*h.totalBalance) > 0 {
+		return wlog.Errorf("insufficient funds")
+	}
+	return nil
+}
+
+func (h *txHandler) generateAddition() error {
+	addition := ""
+	for _, primary := range *h.primaries {
+		presentation, err := h.getComplementRepresentation(primary.Amount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		addition += "80ffff33ffa0" + primary.PuzzleHash + presentation
+	}
+	if h.fee.Sign() > 0 {
+		presentation, err := h.getComplementRepresentation(h.fee.String())
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		addition += "80ffff34ff" + presentation
+	}
+	h.addition = &addition
+	return nil
+}
+
+func (h *txHandler) formalize() {
+	spends := []types.CoinSpend{}
+	spends = append(spends, types.CoinSpend{
+		Coin:         *h.primaryCoin,
+		PuzzleReveal: *h.puzzle,
+		Solution:     *h.announcement + *h.addition + "8080ff8080",
+	})
+	h.spends = &spends
+	if len(*h.coins) <= 1 {
+		return
+	}
+
+	coins := *h.coins
+	for _, coin := range coins[:] {
+		spends = append(spends, types.CoinSpend{
+			Coin:         coin,
+			PuzzleReveal: *h.puzzle,
+			Solution:     "0xff80ffff01ffff3dffa0" + *h.announcementID + "8080ff8080",
+		})
+	}
+}
+
+func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) (*[]types.CoinSpend, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -85,109 +255,23 @@ func GenerateUnsignedTransaction(
 	if err != nil {
 		return nil, wlog.WrapError(err)
 	}
-	totalAmount := _amount.Add(_fee)
-
-	totalBalance, err := GetSpendableBalance()
-	if err != nil {
+	txHandler := &txHandler{
+		amount: &_amount,
+		fee:    &_fee,
+	}
+	if err := txHandler.checkBalance(); err != nil {
 		return nil, wlog.WrapError(err)
 	}
-	if totalAmount.Cmp(totalBalance) > 0 {
-		return nil, wlog.Errorf("insufficient funds")
+	if err := txHandler.selectCoins(_amount); err != nil {
+		return nil, wlog.WrapError(err)
 	}
-
-	coins, err := SelectCoins(totalAmount)
-	if err != nil {
-		return nil, err
+	if err := txHandler.generatePrimaries(); err != nil {
+		return nil, wlog.WrapError(err)
 	}
-	if len(coins) == 0 {
-		return nil, wlog.Errorf("invalid coin")
+	if err := txHandler.generateMessage(); err != nil {
+		return nil, wlog.WrapError(err)
 	}
-
-	spendAmount := decimal.NewFromInt(0)
-	for _, coin := range coins {
-		coinAmount := fmt.Sprintf("%d", coin.Amount)
-		spendAmount.Add(decimal.RequireFromString(coinAmount))
-	}
-
-	change := spendAmount.Sub(totalAmount)
-	if change.Cmp(decimal.NewFromInt(0)) < 0 {
-		return nil, wlog.Errorf("negative change %s", change)
-	}
-
-	var primaryAnnouncement types.Condition
-	originID := coins[0].ID()
-	primaries := []types.Payment{} // about change and transfer amount
-	spends := []types.CoinSpend{}
-	for _, coin := range coins {
-		if originID == coin.ID() {
-			puzzle := puzzle1.NewProgramString(coin.PuzzleHash[:])
-			decoratedTargetPuzzleHash, err := DecoratedTargetPuzzleHash(puzzle, newPuzzleHash)
-			if err != nil {
-				return nil, err
-			}
-
-			primaries = append(primaries, types.Payment{
-				PuzzleHash: decoratedTargetPuzzleHash,
-				Amount:     _amount.BigInt().Uint64(),
-				Memos:      []types.Bytes{},
-			})
-
-			if change.Cmp(decimal.NewFromInt(0)) > 0 {
-				changePuzzleHash, err := GetNewPuzzleHash()
-				if err != nil {
-					return nil, err
-				}
-				primaries = append(primaries, types.Payment{
-					PuzzleHash: changePuzzleHash,
-					Amount:     change.BigInt().Uint64(),
-					Memos:      []types.Bytes{},
-				})
-			}
-
-			messages := []types.Bytes32{}
-			for _, c := range coins {
-				messages = append(messages, c.ID())
-			}
-
-			for _, primary := range primaries {
-				c := types.Coin{
-					ParentCoinInfo: coin.ID(),
-					PuzzleHash:     primary.PuzzleHash,
-					Amount:         primary.Amount,
-				}
-				messages = append(messages, c.ID())
-			}
-			message := stdHash(messages)
-			announcement := CreateCoinAnnouncement(message)
-
-			solution, err := MakeSolution(primaries, decimal.RequireFromString(fee), []types.Condition{announcement})
-			if err != nil {
-				return nil, err
-			}
-
-			primaryAnnouncement = AssertCoinAnnouncement(coin.ID().String(), message)
-			spend, err := MakeSpend(coin, GetPuzzleProgramFromPuzzle(puzzle), solution)
-			if err != nil {
-				return nil, err
-			}
-			spends = append(spends, spend)
-		}
-	}
-	// process the non-origin coins now that we have the primary announcement hash
-	for _, coin := range coins {
-		if coin.ID() == originID {
-			continue
-		}
-		puzzle := puzzle1.NewProgramString(coin.PuzzleHash[:])
-		solution, err := MakeSolution([]types.Payment{}, decimal.RequireFromString(fee), []types.Condition{primaryAnnouncement})
-		if err != nil {
-			return nil, err
-		}
-		spend, err := MakeSpend(coin, GetPuzzleProgramFromPuzzle(puzzle), solution)
-		if err != nil {
-			return nil, err
-		}
-		spends = append(spends, spend)
-	}
-	return spends, nil
+	h.createCoinAnnouncement()
+	txHandler.formalize()
+	return h.spends, nil
 }

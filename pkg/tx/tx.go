@@ -245,14 +245,14 @@ func (h *txHandler) formalize() {
 
 	for _, coin := range h.coins[1:] {
 		h.spends = append(h.spends, &types.CoinSpend{
-			Coin:         coin,
+			Coin:         *coin,
 			PuzzleReveal: *h.puzzleReveal,
 			Solution:     "0xff80ff" + *h.assertAnnouncementAddition + "8080ff8080",
 		})
 	}
 }
 
-func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) ([]*types.CoinSpend, error) {
+func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) ([]*types.CoinSpend, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -292,5 +292,5 @@ func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash str
 	txHandler.generateCreateAnnouncementAddition()
 	txHandler.generateAssertAnnouncementAddition()
 	txHandler.formalize()
-	return h.spends, nil
+	return txHandler.spends, nil
 }

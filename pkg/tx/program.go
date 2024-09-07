@@ -14,15 +14,10 @@ type treeNode struct {
 	val   []byte
 }
 
-func ptrStr(s string) *string {
-	return &s
-}
-
-func program() {
+func conditionChangeTreeHash() {
 	h1, _ := types1.BytesFromHexString("0xeb22326630ee4a8f7f7c459fbf6e60dce37983597aa59ad97b18d12ec1004e0d")
 	h2, _ := types1.BytesFromHexString("0xe25b0ff7a50e4afae386cdab538c70983db7f04fa835b45855114f9d790c414a")
 	h3, _ := types1.BytesFromHexString("0xe4fb5940aef16e2c6cfed28ea3934dada96f4ce2b629b17cd482eb31f6a6c559")
-	h4, _ := types1.BytesFromHexString("0xece219712852ba4ce7ef918d7cf9bad18907c13213482f1ec6bb1fa848476ee6")
 	s1, _ := types1.BytesFromHexString("0x03e8")
 	s2, _ := types1.BytesFromHexString("0x3a35293fb4")
 	tree := treeNode{
@@ -72,13 +67,19 @@ func program() {
 		},
 	}
 
+	treeH := sha256tree(&tree)
+	fmt.Println(hex.EncodeToString(treeH[:]))
+}
+
+func conditionAssertTreeHash() {
+	h1, _ := types1.BytesFromHexString("0xece219712852ba4ce7ef918d7cf9bad18907c13213482f1ec6bb1fa848476ee6")
 	tree1 := treeNode{
 		left: &treeNode{val: []byte{1}},
 		right: &treeNode{
 			left: &treeNode{
 				left: &treeNode{val: []byte{61}},
 				right: &treeNode{
-					left:  &treeNode{val: h4},
+					left:  &treeNode{val: h1},
 					right: &treeNode{val: []byte{}},
 				},
 			},
@@ -86,10 +87,8 @@ func program() {
 		},
 	}
 
-	treeH := sha256tree(&tree)
 	treeH1 := sha256tree(&tree1)
 
-	fmt.Println(hex.EncodeToString(treeH[:]))
 	fmt.Println(hex.EncodeToString(treeH1[:]))
 }
 

@@ -3,6 +3,7 @@ package tx
 import (
 	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
@@ -76,18 +77,13 @@ func (h *txHandler) getSpendableBalance() error {
 	return nil
 }
 
-// TODO
-func (h *txHandler) getNewPuzzleHash() (string, error) {
-	return "0x8acc5d7f1383b5ea598d2f662c716ae8749730b736b58b24d0c8bae1497bc165", nil
-}
-
 // TODO:FinalPublicKey
 func (h *txHandler) generatePuzzleReveal() error {
-	_bytes, err := types1.BytesFromHexString("0xaf0c070c1ce82596d6f7450a7234ab663976e561f7e0676d746f9e332a0abef767bf3f2bd60b42d5977c0cfff1c06556")
+	_bytes, err := types1.BytesFromHexString("0xa823f8043546c70ed2228f63a43203425cf62f6ba556a68ef02311c3771b6e100c45dedf102f9f0e7f9153e252661528")
 	if err != nil {
 		return wlog.WrapError(err)
 	}
-	puzzleReveal := puzzle1.NewProgramString(_bytes)
+	puzzleReveal := fmt.Sprintf("0x%s", puzzle1.NewProgramString(_bytes))
 	h.puzzleReveal = &puzzleReveal
 	return nil
 }

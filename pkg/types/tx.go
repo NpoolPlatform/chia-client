@@ -5,7 +5,13 @@ import (
 )
 
 type Payment struct {
-	PuzzleHash types1.Bytes32 `json:"puzzle_hash" streamable:""`
+	PuzzleHash types1.Bytes32 `json:"puzzle_hash"`
 	Amount     string         `json:"amount"`
 	Memos      []string       `json:"memos,omitempty"`
+}
+
+type CoinSpend struct {
+	Coin         types1.Coin `json:"coin"`
+	PuzzleReveal string      `json:"puzzle_reveal"`
+	Solution     string      `json:"solution"`
 }

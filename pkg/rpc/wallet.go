@@ -19,10 +19,10 @@ type WalletOption struct {
 
 type SelectCoinsResponse struct {
 	rpc1.Response
-	Coins []types1.Coin `json:"coins"`
+	Coins []*types1.Coin `json:"coins"`
 }
 
-func (s *MyWalletService) SelectCoins(opts *WalletOption) (*[]types1.Coin, error) {
+func (s *MyWalletService) SelectCoins(opts *WalletOption) ([]*types1.Coin, error) {
 	request, err := s.NewRequest("select_coins", opts)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (s *MyWalletService) SelectCoins(opts *WalletOption) (*[]types1.Coin, error
 	if err != nil {
 		return nil, err
 	}
-	return &r.Coins, nil
+	return r.Coins, nil
 }
 
 type GetWalletBalanceOptions struct {

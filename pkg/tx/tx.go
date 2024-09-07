@@ -7,6 +7,7 @@ import (
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
 	puzzle1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
+	rpc "github.com/NpoolPlatform/chia-client/pkg/rpc"
 	types "github.com/NpoolPlatform/chia-client/pkg/types"
 	types1 "github.com/chia-network/go-chia-libs/pkg/types"
 	"github.com/shopspring/decimal"
@@ -26,8 +27,9 @@ type txHandler struct {
 	assertAnnouncementAddition *string
 	announcementMessage        *string
 	announcementID             *string
-	puzzle                     *string
+	puzzleReveal               *string
 	spends                     []*types.CoinSpend
+	client                     *rpc.MyWalletService
 }
 
 func (h *txHandler) checkBalance() error {
@@ -41,9 +43,15 @@ func (h *txHandler) checkBalance() error {
 	return nil
 }
 
-// TODO
 func (h *txHandler) selectCoins(amount decimal.Decimal) error {
-	coins := []*types1.Coin{}
+	totalAmount := h.amount.Add(*h.fee)
+	coins, err := h.client.SelectCoins(&rpc.WalletOption{
+		WalletID: 1,
+		Amount:   totalAmount.BigInt().Uint64(),
+	})
+	if err != nil {
+		return wlog.WrapError(err)
+	}
 	if len(coins) == 0 {
 		return wlog.Errorf("coin not available")
 	}
@@ -52,10 +60,20 @@ func (h *txHandler) selectCoins(amount decimal.Decimal) error {
 	return nil
 }
 
-// TODO
 func (h *txHandler) getSpendableBalance() error {
-	balance := decimal.RequireFromString("10000")
-	h.totalBalance = &balance
+	wallet, err := h.client.GetWalletBalance(&rpc.GetWalletBalanceOptions{
+		WalletID: 1,
+	})
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+
+	balanceStr := fmt.Sprintf("%d", wallet.SpendableBalance)
+	totalBalance, err := decimal.NewFromString(balanceStr)
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	h.totalBalance = &totalBalance
 	return nil
 }
 
@@ -65,8 +83,12 @@ func (h *txHandler) getNewPuzzleHash() (string, error) {
 
 // TODO:FinalPublicKey
 func (h *txHandler) generatePuzzle() error {
-	puzzle := puzzle1.NewProgramString([]byte{})
-	h.puzzle = &puzzle
+	_bytes, err := types1.BytesFromHexString("0xaf0c070c1ce82596d6f7450a7234ab663976e561f7e0676d746f9e332a0abef767bf3f2bd60b42d5977c0cfff1c06556")
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	puzzleReveal := puzzle1.NewProgramString(_bytes)
+	h.puzzleReveal = &puzzleReveal
 	return nil
 }
 
@@ -214,7 +236,7 @@ func (h *txHandler) generateAssertAnnouncementAddition() {
 func (h *txHandler) formalize() {
 	h.spends = append(h.spends, &types.CoinSpend{
 		Coin:         *h.primaryCoin,
-		PuzzleReveal: *h.puzzle,
+		PuzzleReveal: *h.puzzleReveal,
 		Solution:     "0xff80ff" + *h.createAnnouncementAddition + *h.paymentAddition + "8080ff8080",
 	})
 	if len(h.coins) <= 1 {
@@ -224,7 +246,7 @@ func (h *txHandler) formalize() {
 	for _, coin := range h.coins[1:] {
 		h.spends = append(h.spends, &types.CoinSpend{
 			Coin:         coin,
-			PuzzleReveal: *h.puzzle,
+			PuzzleReveal: *h.puzzleReveal,
 			Solution:     "0xff80ff" + *h.assertAnnouncementAddition + "8080ff8080",
 		})
 	}
@@ -239,9 +261,15 @@ func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash str
 	if err != nil {
 		return nil, wlog.WrapError(err)
 	}
+
+	client, err := rpc.GetWalletClient()
+	if err != nil {
+		return nil, wlog.WrapError(err)
+	}
 	txHandler := &txHandler{
 		amount: &_amount,
 		fee:    &_fee,
+		client: client,
 	}
 	if err := txHandler.checkBalance(); err != nil {
 		return nil, wlog.WrapError(err)

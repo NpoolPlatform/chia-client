@@ -3,7 +3,6 @@ package tx
 import (
 	"crypto/sha256"
 	"fmt"
-	"strings"
 
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
@@ -83,7 +82,8 @@ func (h *txHandler) generatePuzzleReveal() error {
 	if err != nil {
 		return wlog.WrapError(err)
 	}
-	puzzleReveal := fmt.Sprintf("0x%s", puzzle1.NewProgramString(_bytes))
+
+	puzzleReveal := "0x" + puzzle1.NewProgramString(_bytes)
 	h.puzzleReveal = &puzzleReveal
 	return nil
 }

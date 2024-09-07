@@ -13,30 +13,42 @@ import (
 )
 
 type txHandler struct {
-	primaries           *[]types.Payment
-	amount              *decimal.Decimal
-	fee                 *decimal.Decimal
-	totalBalance        *decimal.Decimal
-	newPuzzleHash       *string
-	changePuzzleHash    *string
-	coins               *[]types1.Coin
-	primaryCoin         *types1.Coin
-	addition            *string
-	announcementMessage *string
-	announcement        *string
-	announcementID      *string
-	puzzle              *string
-	spends              *[]types.CoinSpend
+	payments                   []*types.Payment
+	amount                     *decimal.Decimal
+	fee                        *decimal.Decimal
+	totalBalance               *decimal.Decimal
+	newPuzzleHash              *string
+	changePuzzleHash           *string
+	coins                      []*types1.Coin
+	primaryCoin                *types1.Coin
+	paymentAddition            *string
+	createAnnouncementAddition *string
+	assertAnnouncementAddition *string
+	announcementMessage        *string
+	announcementID             *string
+	puzzle                     *string
+	spends                     []*types.CoinSpend
+}
+
+func (h *txHandler) checkBalance() error {
+	totalAmount := h.amount.Add(*h.fee)
+	if err := h.getSpendableBalance(); err != nil {
+		return wlog.WrapError(err)
+	}
+	if totalAmount.Cmp(*h.totalBalance) > 0 {
+		return wlog.Errorf("insufficient funds")
+	}
+	return nil
 }
 
 // TODO
 func (h *txHandler) selectCoins(amount decimal.Decimal) error {
-	coins := []types1.Coin{}
+	coins := []*types1.Coin{}
 	if len(coins) == 0 {
 		return wlog.Errorf("coin not available")
 	}
-	h.primaryCoin = &coins[0]
-	h.coins = &coins
+	h.primaryCoin = coins[0]
+	h.coins = coins
 	return nil
 }
 
@@ -49,6 +61,13 @@ func (h *txHandler) getSpendableBalance() error {
 
 func (h *txHandler) getNewPuzzleHash() (string, error) {
 	return "", nil
+}
+
+// TODO:FinalPublicKey
+func (h *txHandler) generatePuzzle() error {
+	puzzle := puzzle1.NewProgramString([]byte{})
+	h.puzzle = &puzzle
+	return nil
 }
 
 func (h *txHandler) getComplementRepresentation(amount string) (string, error) {
@@ -80,28 +99,6 @@ func (h *txHandler) getComplementRepresentation(amount string) (string, error) {
 	return prefix + fmt.Sprintf("%d", len(bytes)) + hexRepresentation, nil
 }
 
-func (h *txHandler) makeSpend(payments []types.Payment, fee decimal.Decimal) (string, error) {
-	spend := ""
-	for _, payment := range payments {
-		spend += "80ffff33ffa0"
-		spend += payment.PuzzleHash
-		amount, err := h.getComplementRepresentation(payment.Amount)
-		if err != nil {
-			return "", err
-		}
-		spend += amount
-	}
-
-	if fee.Sign() > 0 {
-		presentation, err := h.getComplementRepresentation(fee.String())
-		if err != nil {
-			return "", err
-		}
-		spend += "80ffff34ff" + presentation
-	}
-	return spend, nil
-}
-
 func (h *txHandler) stdHash(myBytes []types1.Bytes32) string {
 	newBytes := sha256.New()
 	for _, b := range myBytes {
@@ -111,51 +108,9 @@ func (h *txHandler) stdHash(myBytes []types1.Bytes32) string {
 	return _bytes
 }
 
-func (h *txHandler) createCoinAnnouncement() {
-	announcement := "0xff80ffff01ffff3cffa0" + *h.announcementMessage
-	h.announcement = &announcement
-}
-
-func (h *txHandler) assertCoinAnnouncement() error {
-	message, err := types1.Bytes32FromHexString(*h.announcementMessage)
-	if err != nil {
-		return wlog.WrapError(err)
-	}
-	announcementID := h.stdHash([]types1.Bytes32{h.primaryCoin.ID(), message})
-	h.announcementID = &announcementID
-	return nil
-}
-
-func (h *txHandler) generateMessage() error {
-	messages := []types1.Bytes32{}
-	for _, coin := range *h.coins {
-		messages = append(messages, coin.ID())
-	}
-
-	for _, primary := range *h.primaries {
-		puzzleHash, err := types1.Bytes32FromHexString(primary.PuzzleHash)
-		if err != nil {
-			return wlog.WrapError(err)
-		}
-		amount, err := decimal.NewFromString(primary.Amount)
-		if err != nil {
-			return wlog.WrapError(err)
-		}
-		c := types1.Coin{
-			ParentCoinInfo: h.primaryCoin.ID(),
-			PuzzleHash:     puzzleHash,
-			Amount:         amount.BigInt().Uint64(),
-		}
-		messages = append(messages, c.ID())
-	}
-	message := h.stdHash(messages)
-	h.announcementMessage = &message
-	return nil
-}
-
-func (h *txHandler) generatePrimaries() error {
+func (h *txHandler) generatePayments() error {
 	spendAmount := decimal.NewFromInt(0)
-	for _, coin := range *h.coins {
+	for _, coin := range h.coins {
 		coinAmount := fmt.Sprintf("%d", coin.Amount)
 		spendAmount = spendAmount.Add(decimal.RequireFromString(coinAmount))
 	}
@@ -166,52 +121,41 @@ func (h *txHandler) generatePrimaries() error {
 		return wlog.Errorf("negative change %s", change)
 	}
 
-	primaries := []types.Payment{}
-	primaries = append(primaries, types.Payment{
-		PuzzleHash: *h.newPuzzleHash,
+	_newPuzzleHash, err := types1.Bytes32FromHexString(*h.newPuzzleHash)
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	payments := []*types.Payment{{
+		PuzzleHash: _newPuzzleHash,
 		Amount:     h.amount.String(),
-	})
+	}}
 
 	if change.Cmp(decimal.NewFromInt(0)) > 0 {
 		changePuzzleHash, err := h.getNewPuzzleHash()
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		primaries = append(primaries, types.Payment{
-			PuzzleHash: changePuzzleHash,
-			Amount:     change.String(),
-		})
-	}
-	h.primaries = &primaries
-	return nil
-}
-
-// TODO:FinalPublicKey
-func (h *txHandler) generatePuzzle() error {
-	puzzle := puzzle1.NewProgramString([]byte{})
-	h.puzzle = &puzzle
-	return nil
-}
-
-func (h *txHandler) checkBalance() error {
-	totalAmount := h.amount.Add(*h.fee)
-	if err := h.getSpendableBalance(); err != nil {
-		return wlog.WrapError(err)
-	}
-	if totalAmount.Cmp(*h.totalBalance) > 0 {
-		return wlog.Errorf("insufficient funds")
-	}
-	return nil
-}
-
-func (h *txHandler) generateAddition() error {
-	addition := ""
-	for _, primary := range *h.primaries {
-		presentation, err := h.getComplementRepresentation(primary.Amount)
+		_changePuzzleHash, err := types1.Bytes32FromHexString(changePuzzleHash)
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		addition += "80ffff33ffa0" + primary.PuzzleHash + presentation
+		payments = append(payments, &types.Payment{
+			PuzzleHash: _changePuzzleHash,
+			Amount:     change.String(),
+		})
+	}
+	h.payments = payments
+	return nil
+}
+
+func (h *txHandler) generatePaymentAddition() error {
+	addition := ""
+	for _, payment := range h.payments {
+		presentation, err := h.getComplementRepresentation(payment.Amount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		addition += "80ffff33ffa0" + payment.PuzzleHash.String() + presentation
 	}
 	if h.fee.Sign() > 0 {
 		presentation, err := h.getComplementRepresentation(h.fee.String())
@@ -220,33 +164,73 @@ func (h *txHandler) generateAddition() error {
 		}
 		addition += "80ffff34ff" + presentation
 	}
-	h.addition = &addition
+	h.paymentAddition = &addition
 	return nil
 }
 
+func (h *txHandler) generateAnnouncementMessage() error {
+	messages := []types1.Bytes32{}
+	for _, coin := range h.coins {
+		messages = append(messages, coin.ID())
+	}
+
+	for _, payment := range h.payments {
+		amount, err := decimal.NewFromString(payment.Amount)
+		if err != nil {
+			return wlog.WrapError(err)
+		}
+		c := types1.Coin{
+			ParentCoinInfo: h.primaryCoin.ID(),
+			PuzzleHash:     payment.PuzzleHash,
+			Amount:         amount.BigInt().Uint64(),
+		}
+		messages = append(messages, c.ID())
+	}
+	message := h.stdHash(messages)
+	h.announcementMessage = &message
+	return nil
+}
+
+func (h *txHandler) generateCreateAnnouncementAddition() {
+	announcement := "ff01ffff3cffa0" + *h.announcementMessage
+	h.createAnnouncementAddition = &announcement
+}
+
+func (h *txHandler) getAnnouncementID() error {
+	message, err := types1.Bytes32FromHexString(*h.announcementMessage)
+	if err != nil {
+		return wlog.WrapError(err)
+	}
+	announcementID := h.stdHash([]types1.Bytes32{h.primaryCoin.ID(), message})
+	h.announcementID = &announcementID
+	return nil
+}
+
+func (h *txHandler) generateAssertAnnouncementAddition() {
+	announcement := "ff01ffff3cffa0" + *h.announcementID
+	h.assertAnnouncementAddition = &announcement
+}
+
 func (h *txHandler) formalize() {
-	spends := []types.CoinSpend{}
-	spends = append(spends, types.CoinSpend{
+	h.spends = append(h.spends, &types.CoinSpend{
 		Coin:         *h.primaryCoin,
 		PuzzleReveal: *h.puzzle,
-		Solution:     *h.announcement + *h.addition + "8080ff8080",
+		Solution:     "0xff80ff" + *h.createAnnouncementAddition + *h.paymentAddition + "8080ff8080",
 	})
-	h.spends = &spends
-	if len(*h.coins) <= 1 {
+	if len(h.coins) <= 1 {
 		return
 	}
 
-	coins := *h.coins
-	for _, coin := range coins[:] {
-		spends = append(spends, types.CoinSpend{
+	for _, coin := range h.coins[1:] {
+		h.spends = append(h.spends, &types.CoinSpend{
 			Coin:         coin,
 			PuzzleReveal: *h.puzzle,
-			Solution:     "0xff80ffff01ffff3dffa0" + *h.announcementID + "8080ff8080",
+			Solution:     "0xff80ff" + *h.assertAnnouncementAddition + "8080ff8080",
 		})
 	}
 }
 
-func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) (*[]types.CoinSpend, error) {
+func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) ([]*types.CoinSpend, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -265,13 +249,20 @@ func (h *txHandler) GenerateUnsignedTransaction(amount string, newPuzzleHash str
 	if err := txHandler.selectCoins(_amount); err != nil {
 		return nil, wlog.WrapError(err)
 	}
-	if err := txHandler.generatePrimaries(); err != nil {
+	if err := txHandler.generatePayments(); err != nil {
 		return nil, wlog.WrapError(err)
 	}
-	if err := txHandler.generateMessage(); err != nil {
+	if err := txHandler.generatePaymentAddition(); err != nil {
 		return nil, wlog.WrapError(err)
 	}
-	h.createCoinAnnouncement()
+	if err := txHandler.generateAnnouncementMessage(); err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	if err := txHandler.getAnnouncementID(); err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	txHandler.generateCreateAnnouncementAddition()
+	txHandler.generateAssertAnnouncementAddition()
 	txHandler.formalize()
 	return h.spends, nil
 }

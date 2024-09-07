@@ -18,10 +18,11 @@ func ptrStr(s string) *string {
 	return &s
 }
 
-func demo() {
+func program() {
 	h1, _ := types1.BytesFromHexString("0xeb22326630ee4a8f7f7c459fbf6e60dce37983597aa59ad97b18d12ec1004e0d")
 	h2, _ := types1.BytesFromHexString("0xe25b0ff7a50e4afae386cdab538c70983db7f04fa835b45855114f9d790c414a")
 	h3, _ := types1.BytesFromHexString("0xe4fb5940aef16e2c6cfed28ea3934dada96f4ce2b629b17cd482eb31f6a6c559")
+	h4, _ := types1.BytesFromHexString("0xece219712852ba4ce7ef918d7cf9bad18907c13213482f1ec6bb1fa848476ee6")
 	s1, _ := types1.BytesFromHexString("0x03e8")
 	s2, _ := types1.BytesFromHexString("0x3a35293fb4")
 	tree := treeNode{
@@ -71,9 +72,25 @@ func demo() {
 		},
 	}
 
+	tree1 := treeNode{
+		left: &treeNode{val: []byte{1}},
+		right: &treeNode{
+			left: &treeNode{
+				left: &treeNode{val: []byte{61}},
+				right: &treeNode{
+					left:  &treeNode{val: h4},
+					right: &treeNode{val: []byte{}},
+				},
+			},
+			right: &treeNode{val: []byte{}},
+		},
+	}
+
 	treeH := sha256tree(&tree)
+	treeH1 := sha256tree(&tree1)
 
 	fmt.Println(hex.EncodeToString(treeH[:]))
+	fmt.Println(hex.EncodeToString(treeH1[:]))
 }
 
 func sha256tree(v *treeNode) [32]byte {
@@ -92,14 +109,3 @@ func sha256tree(v *treeNode) [32]byte {
 
 	return sha256.Sum256(sBytes)
 }
-
-// "ba0d3a164a206b6dfb8d8fdf8da7aea1b94de99e604586eb9e11f34e51b0d1fa"
-// def sha256tree(v):
-//     pair = v.pair
-//     if pair:
-//         left = sha256tree(pair[0])
-//         right = sha256tree(pair[1])
-//         s = b"\2" + left + right
-//     else:
-//         s = b"\1" + v.atom
-//     return hashlib.sha256(s).digest()

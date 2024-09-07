@@ -8,7 +8,11 @@ import (
 )
 
 func TestCreateUnsignedTx(t *testing.T) {
-	tx, err := GenerateUnsignedTransaction("90", "0x5baecec1bc13676097ad96b29a73d599d93871b75981ec973f5c376486d08b4d", "14")
+	spends, err := GenerateUnsignedTransaction("90", "0x87d86f291b7da8b2a4e197ffaa4a2d05ef5cbbc5aafd37829f4cf2147c6ec915", "11")
 	assert.Nil(t, err)
-	fmt.Println("tx: ", tx)
+	for _, spend := range spends {
+		fmt.Println("coin: ", spend.Coin)
+		fmt.Println("solution: ", spend.Solution)
+		fmt.Println("puzzle: ", spend.PuzzleReveal)
+	}
 }

@@ -14,19 +14,21 @@ type treeNode struct {
 	val   []byte
 }
 
-func conditionChangeTreeHash() {
-	h1, _ := types1.BytesFromHexString("0xeb22326630ee4a8f7f7c459fbf6e60dce37983597aa59ad97b18d12ec1004e0d")
-	h2, _ := types1.BytesFromHexString("0xe25b0ff7a50e4afae386cdab538c70983db7f04fa835b45855114f9d790c414a")
-	h3, _ := types1.BytesFromHexString("0xe4fb5940aef16e2c6cfed28ea3934dada96f4ce2b629b17cd482eb31f6a6c559")
-	s1, _ := types1.BytesFromHexString("0x03e8")
-	s2, _ := types1.BytesFromHexString("0x3a35293fb4")
+func (h *txHandler) conditionChangeTreeHash() string {
+	announcementMessage, _ := types1.BytesFromHexString(*h.announcementMessage)
+	toPuzzleHash, _ := types1.BytesFromHexString(*h.newPuzzleHash)
+	changePuzzleHash, _ := types1.BytesFromHexString(*h.changePuzzleHash)
+	transferAmount, _ := types1.BytesFromHexString(h.amount.String())
+	changeAmount, _ := types1.BytesFromHexString(h.changeAmount.String())
+	feeAmount, _ := types1.BytesFromHexString(h.fee.String())
+
 	tree := treeNode{
 		left: &treeNode{val: []byte{1}},
 		right: &treeNode{
 			left: &treeNode{
 				left: &treeNode{val: []byte{60}},
 				right: &treeNode{
-					left:  &treeNode{val: h1},
+					left:  &treeNode{val: announcementMessage},
 					right: &treeNode{val: []byte{}},
 				},
 			},
@@ -34,9 +36,9 @@ func conditionChangeTreeHash() {
 				left: &treeNode{
 					left: &treeNode{val: []byte{51}},
 					right: &treeNode{
-						left: &treeNode{val: h2},
+						left: &treeNode{val: toPuzzleHash},
 						right: &treeNode{
-							left:  &treeNode{val: s1},
+							left:  &treeNode{val: transferAmount},
 							right: &treeNode{val: []byte{}},
 						},
 					},
@@ -45,9 +47,9 @@ func conditionChangeTreeHash() {
 					left: &treeNode{
 						left: &treeNode{val: []byte{51}},
 						right: &treeNode{
-							left: &treeNode{val: h3},
+							left: &treeNode{val: changePuzzleHash},
 							right: &treeNode{
-								left:  &treeNode{val: s2},
+								left:  &treeNode{val: changeAmount},
 								right: &treeNode{val: []byte{}},
 							},
 						},
@@ -56,7 +58,7 @@ func conditionChangeTreeHash() {
 						left: &treeNode{
 							left: &treeNode{val: []byte{52}},
 							right: &treeNode{
-								left:  &treeNode{val: []byte{100}},
+								left:  &treeNode{val: feeAmount},
 								right: &treeNode{val: []byte{}},
 							},
 						},
@@ -69,17 +71,18 @@ func conditionChangeTreeHash() {
 
 	treeH := sha256tree(&tree)
 	fmt.Println(hex.EncodeToString(treeH[:]))
+	return hex.EncodeToString(treeH[:])
 }
 
-func conditionAssertTreeHash() {
-	h1, _ := types1.BytesFromHexString("0xece219712852ba4ce7ef918d7cf9bad18907c13213482f1ec6bb1fa848476ee6")
+func (h *txHandler) conditionAssertTreeHash() string {
+	announcementID, _ := types1.BytesFromHexString(*h.announcementID)
 	tree1 := treeNode{
 		left: &treeNode{val: []byte{1}},
 		right: &treeNode{
 			left: &treeNode{
 				left: &treeNode{val: []byte{61}},
 				right: &treeNode{
-					left:  &treeNode{val: h1},
+					left:  &treeNode{val: announcementID},
 					right: &treeNode{val: []byte{}},
 				},
 			},
@@ -90,6 +93,7 @@ func conditionAssertTreeHash() {
 	treeH1 := sha256tree(&tree1)
 
 	fmt.Println(hex.EncodeToString(treeH1[:]))
+	return hex.EncodeToString(treeH1[:])
 }
 
 func sha256tree(v *treeNode) [32]byte {

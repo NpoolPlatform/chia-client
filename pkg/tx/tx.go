@@ -16,6 +16,7 @@ import (
 type txHandler struct {
 	payments                   []*types.Payment
 	amount                     *decimal.Decimal
+	changeAmount               *decimal.Decimal
 	fee                        *decimal.Decimal
 	totalBalance               *decimal.Decimal
 	newPuzzleHash              *string
@@ -29,50 +30,37 @@ type txHandler struct {
 	announcementID             *string
 	puzzleReveal               *string
 	spends                     []*types.CoinSpend
-	client                     *rpc.MyWalletService
+	walletClient               *rpc.MyWalletService
+	fullnodeClient             *rpc.MyFullNodeService
+	coinRecords                []*types1.CoinRecord
+	additionalData             *string
+	tx                         *types.UnsignedTx
 }
 
-func (h *txHandler) checkBalance() error {
-	totalAmount := h.amount.Add(*h.fee)
-	if err := h.getSpendableBalance(); err != nil {
-		return wlog.WrapError(err)
-	}
-	if totalAmount.Cmp(*h.totalBalance) > 0 {
-		return wlog.Errorf("insufficient funds")
-	}
-	return nil
-}
+func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
+	coins := []*types1.Coin{}
+	spendableBalance := decimal.NewFromInt(0)
 
-func (h *txHandler) selectCoins(amount decimal.Decimal) error {
-	totalAmount := h.amount.Add(*h.fee)
-	coins, err := h.client.SelectCoins(&rpc.WalletOption{
-		WalletID: 1,
-		Amount:   totalAmount.BigInt().Uint64(),
-	})
-	if err != nil {
-		return wlog.WrapError(err)
+	for _, record := range h.coinRecords {
+		amount := fmt.Sprintf("%d", record.Coin.Amount)
+		spendableBalance = spendableBalance.Add(decimal.RequireFromString(amount))
+		coins = append(coins, &types1.Coin{
+			ParentCoinInfo: record.Coin.ParentCoinInfo,
+			PuzzleHash:     record.Coin.PuzzleHash,
+			Amount:         record.Coin.Amount,
+		})
+		if spendableBalance.Cmp(totalSpend) >= 0 {
+			break
+		}
 	}
 	if len(coins) == 0 {
-		return wlog.Errorf("coin not available")
+		return wlog.Errorf("invalid coin")
+	}
+	if spendableBalance.Cmp(totalSpend) < 0 {
+		return wlog.Errorf("insuffient funds")
 	}
 	h.primaryCoin = coins[0]
 	h.coins = coins
-	return nil
-}
-
-func (h *txHandler) getSpendableBalance() error {
-	wallet, err := h.client.GetWalletBalance(&rpc.GetWalletBalanceOptions{
-		WalletID: 1,
-	})
-	if err != nil {
-		return wlog.WrapError(err)
-	}
-
-	totalBalance, err := decimal.NewFromString(wallet.SpendableBalance.String())
-	if err != nil {
-		return wlog.WrapError(err)
-	}
-	h.totalBalance = &totalBalance
 	return nil
 }
 
@@ -138,6 +126,7 @@ func (h *txHandler) generatePayments() error {
 	if change.Cmp(decimal.NewFromInt(0)) < 0 {
 		return wlog.Errorf("negative change %s", change)
 	}
+	h.changeAmount = &change
 
 	newPuzzleHash, err := types1.Bytes32FromHexString(*h.newPuzzleHash)
 	if err != nil {
@@ -223,25 +212,35 @@ func (h *txHandler) generateAssertAnnouncementAddition() {
 }
 
 func (h *txHandler) formalize() {
+	messages := []string{h.conditionChangeTreeHash() + h.primaryCoin.ID().String() + *h.additionalData}
 	h.spends = append(h.spends, &types.CoinSpend{
 		Coin:         *h.primaryCoin,
 		PuzzleReveal: *h.puzzleReveal,
 		Solution:     "0xff80ff" + *h.createAnnouncementAddition + *h.paymentAddition + "8080ff8080",
 	})
+	h.tx = &types.UnsignedTx{
+		CoinSpends: h.spends,
+		Messages:   messages,
+	}
 	if len(h.coins) < 2 {
 		return
 	}
 
 	for _, coin := range h.coins[1:] {
+		messages = append(messages, h.conditionAssertTreeHash()+coin.ID().String()+*h.additionalData)
 		h.spends = append(h.spends, &types.CoinSpend{
 			Coin:         *coin,
 			PuzzleReveal: *h.puzzleReveal,
 			Solution:     "0xff80ff" + *h.assertAnnouncementAddition + "8080ff8080",
 		})
 	}
+	h.tx = &types.UnsignedTx{
+		CoinSpends: h.spends,
+		Messages:   messages,
+	}
 }
 
-func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) ([]*types.CoinSpend, error) {
+func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) (*types.UnsignedTx, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -251,18 +250,10 @@ func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string
 		return nil, wlog.WrapError(err)
 	}
 
-	client, err := rpc.GetWalletClient()
-	if err != nil {
-		return nil, wlog.WrapError(err)
-	}
 	txHandler := &txHandler{
 		amount:        &_amount,
 		fee:           &_fee,
 		newPuzzleHash: &newPuzzleHash,
-		client:        client,
-	}
-	if err := txHandler.checkBalance(); err != nil {
-		return nil, wlog.WrapError(err)
 	}
 	if err := txHandler.selectCoins(_amount); err != nil {
 		return nil, wlog.WrapError(err)
@@ -285,5 +276,5 @@ func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string
 	txHandler.generateCreateAnnouncementAddition()
 	txHandler.generateAssertAnnouncementAddition()
 	txHandler.formalize()
-	return txHandler.spends, nil
+	return txHandler.tx, nil
 }

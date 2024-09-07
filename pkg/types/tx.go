@@ -15,3 +15,8 @@ type CoinSpend struct {
 	PuzzleReveal string      `json:"puzzle_reveal"`
 	Solution     string      `json:"solution"`
 }
+
+type UnsignedTx struct {
+	CoinSpends []*CoinSpend `json:"coin_spends"`
+	Messages   []string     `json:"messages"`
+}

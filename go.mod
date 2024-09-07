@@ -2,6 +2,8 @@ module github.com/NpoolPlatform/chia-client
 
 go 1.23
 
+toolchain go1.23.1
+
 require (
 	github.com/NpoolPlatform/go-service-framework v0.0.0-20240710095805-e6137d987fcc
 	github.com/btcsuite/btcd/btcutil v1.1.6

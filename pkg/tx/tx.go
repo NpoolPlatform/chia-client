@@ -68,8 +68,7 @@ func (h *txHandler) getSpendableBalance() error {
 		return wlog.WrapError(err)
 	}
 
-	balanceStr := fmt.Sprintf("%d", wallet.SpendableBalance)
-	totalBalance, err := decimal.NewFromString(balanceStr)
+	totalBalance, err := decimal.NewFromString(wallet.SpendableBalance.String())
 	if err != nil {
 		return wlog.WrapError(err)
 	}
@@ -77,12 +76,13 @@ func (h *txHandler) getSpendableBalance() error {
 	return nil
 }
 
+// TODO
 func (h *txHandler) getNewPuzzleHash() (string, error) {
-	return "", nil
+	return "0x8acc5d7f1383b5ea598d2f662c716ae8749730b736b58b24d0c8bae1497bc165", nil
 }
 
 // TODO:FinalPublicKey
-func (h *txHandler) generatePuzzle() error {
+func (h *txHandler) generatePuzzleReveal() error {
 	_bytes, err := types1.BytesFromHexString("0xaf0c070c1ce82596d6f7450a7234ab663976e561f7e0676d746f9e332a0abef767bf3f2bd60b42d5977c0cfff1c06556")
 	if err != nil {
 		return wlog.WrapError(err)
@@ -115,10 +115,10 @@ func (h *txHandler) getComplementRepresentation(amount string) (string, error) {
 
 	prefix := "ff"
 	if len(bytes) > 1 {
-		prefix = "ff8"
+		prefix = fmt.Sprintf("ff8%d", len(bytes))
 	}
 
-	return prefix + fmt.Sprintf("%d", len(bytes)) + hexRepresentation, nil
+	return prefix + hexRepresentation, nil
 }
 
 func (h *txHandler) stdHash(myBytes []types1.Bytes32) string {
@@ -177,14 +177,14 @@ func (h *txHandler) generatePaymentAddition() error {
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		addition += "80ffff33ffa0" + payment.PuzzleHash.String() + presentation
+		addition += "80ffff33ffa0" + payment.PuzzleHash.String()[2:] + presentation
 	}
 	if h.fee.Sign() > 0 {
 		presentation, err := h.getComplementRepresentation(h.fee.String())
 		if err != nil {
 			return wlog.WrapError(err)
 		}
-		addition += "80ffff34ff" + presentation
+		addition += "80ffff34" + presentation
 	}
 	h.paymentAddition = &addition
 	return nil
@@ -267,14 +267,18 @@ func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string
 		return nil, wlog.WrapError(err)
 	}
 	txHandler := &txHandler{
-		amount: &_amount,
-		fee:    &_fee,
-		client: client,
+		amount:        &_amount,
+		fee:           &_fee,
+		newPuzzleHash: &newPuzzleHash,
+		client:        client,
 	}
 	if err := txHandler.checkBalance(); err != nil {
 		return nil, wlog.WrapError(err)
 	}
 	if err := txHandler.selectCoins(_amount); err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	if err := txHandler.generatePuzzleReveal(); err != nil {
 		return nil, wlog.WrapError(err)
 	}
 	if err := txHandler.generatePayments(); err != nil {

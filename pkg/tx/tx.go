@@ -143,26 +143,18 @@ func (h *txHandler) generatePayments() error {
 		return wlog.Errorf("negative change %s", change)
 	}
 
-	_newPuzzleHash, err := types1.Bytes32FromHexString(*h.newPuzzleHash)
+	newPuzzleHash, err := types1.Bytes32FromHexString(*h.newPuzzleHash)
 	if err != nil {
 		return wlog.WrapError(err)
 	}
 	payments := []*types.Payment{{
-		PuzzleHash: _newPuzzleHash,
+		PuzzleHash: newPuzzleHash,
 		Amount:     h.amount.String(),
 	}}
 
-	if change.Cmp(decimal.NewFromInt(0)) > 0 {
-		changePuzzleHash, err := h.getNewPuzzleHash()
-		if err != nil {
-			return wlog.WrapError(err)
-		}
-		_changePuzzleHash, err := types1.Bytes32FromHexString(changePuzzleHash)
-		if err != nil {
-			return wlog.WrapError(err)
-		}
+	if change.Sign() > 0 {
 		payments = append(payments, &types.Payment{
-			PuzzleHash: _changePuzzleHash,
+			PuzzleHash: h.primaryCoin.PuzzleHash,
 			Amount:     change.String(),
 		})
 	}
@@ -179,6 +171,7 @@ func (h *txHandler) generatePaymentAddition() error {
 		}
 		addition += "80ffff33ffa0" + payment.PuzzleHash.String()[2:] + presentation
 	}
+
 	if h.fee.Sign() > 0 {
 		presentation, err := h.getComplementRepresentation(h.fee.String())
 		if err != nil {
@@ -239,7 +232,7 @@ func (h *txHandler) formalize() {
 		PuzzleReveal: *h.puzzleReveal,
 		Solution:     "0xff80ff" + *h.createAnnouncementAddition + *h.paymentAddition + "8080ff8080",
 	})
-	if len(h.coins) <= 1 {
+	if len(h.coins) < 2 {
 		return
 	}
 

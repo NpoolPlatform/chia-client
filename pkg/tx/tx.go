@@ -23,6 +23,7 @@ type txHandler struct {
 	fromPuzzleHash             *string
 	fromPuzzleHashBytes        []byte
 	changePuzzleHash           *string
+	records                    []*types1.CoinRecord
 	coins                      []*types1.Coin
 	primaryCoin                *types1.Coin
 	paymentAddition            *string
@@ -41,12 +42,10 @@ func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
 	coins := []*types1.Coin{}
 	spendableBalance := decimal.NewFromInt(0)
 
-	length := 0
-	for _, coin := range h.coins {
-		amount := fmt.Sprintf("%d", coin.Amount)
+	for _, record := range h.records {
+		amount := fmt.Sprintf("%d", record.Coin.Amount)
 		spendableBalance = spendableBalance.Add(decimal.RequireFromString(amount))
-		coins = append(coins, coin)
-		length += 1
+		coins = append(coins, &record.Coin)
 		if spendableBalance.Cmp(totalSpend) >= 0 {
 			break
 		}
@@ -54,18 +53,14 @@ func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
 	if len(coins) == 0 {
 		return wlog.Errorf("invalid coin")
 	}
-	if len(coins) != length {
-		return wlog.Errorf("invalid coin length")
-	}
 	if spendableBalance.Cmp(totalSpend) < 0 {
-		return wlog.Errorf("insuffient funds")
+		return wlog.Errorf("insufficient funds")
 	}
 	h.primaryCoin = coins[0]
 	h.coins = coins
 	return nil
 }
 
-// TODO:FinalPublicKey
 func (h *txHandler) generatePuzzleReveal() error {
 	_bytes, err := types1.BytesFromHexString(*h.publicKey)
 	if err != nil {
@@ -237,7 +232,7 @@ func (h *txHandler) formalize() {
 	}
 }
 
-func GenerateUnsignedTransaction(from string, to string, amount string, fee string, coins []*types1.Coin, additionalData string, publicKey string) (*types.UnsignedTx, error) {
+func GenerateUnsignedTransaction(from string, to string, amount string, fee string, records []*types1.CoinRecord, additionalData string, publicKey string) (*types.UnsignedTx, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -265,7 +260,7 @@ func GenerateUnsignedTransaction(from string, to string, amount string, fee stri
 		fromPuzzleHashBytes: fromPuzzleHashBytes,
 		toPuzzleHash:        &toPuzzleHash,
 		toPuzzleHashBytes:   toPuzzleHashBytes,
-		coins:               coins,
+		records:             records,
 		additionalData:      &additionalData,
 		publicKey:           &publicKey,
 	}

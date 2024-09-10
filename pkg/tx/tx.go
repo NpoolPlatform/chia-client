@@ -2,11 +2,12 @@ package tx
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
-	puzzle1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
+	puzzlehash1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
 	types "github.com/NpoolPlatform/chia-client/pkg/types"
 	types1 "github.com/chia-network/go-chia-libs/pkg/types"
 	"github.com/shopspring/decimal"
@@ -18,6 +19,9 @@ type txHandler struct {
 	changeAmount               *decimal.Decimal
 	fee                        *decimal.Decimal
 	toPuzzleHash               *string
+	toPuzzleHashBytes          []byte
+	fromPuzzleHash             *string
+	fromPuzzleHashBytes        []byte
 	changePuzzleHash           *string
 	coins                      []*types1.Coin
 	primaryCoin                *types1.Coin
@@ -67,7 +71,7 @@ func (h *txHandler) generatePuzzleReveal() error {
 		return wlog.WrapError(err)
 	}
 
-	puzzleReveal := "0x" + puzzle1.NewProgramString(_bytes)
+	puzzleReveal := "0x" + puzzlehash1.NewProgramString(_bytes)
 	h.puzzleReveal = &puzzleReveal
 	return nil
 }
@@ -124,12 +128,8 @@ func (h *txHandler) generatePayments() error {
 	}
 	h.changeAmount = &change
 
-	toPuzzleHash, err := types1.Bytes32FromHexString(*h.toPuzzleHash)
-	if err != nil {
-		return wlog.WrapError(err)
-	}
 	payments := []*types.Payment{{
-		PuzzleHash: toPuzzleHash,
+		PuzzleHash: types1.Bytes32(h.toPuzzleHashBytes),
 		Amount:     h.amount.String(),
 	}}
 
@@ -208,7 +208,7 @@ func (h *txHandler) generateAssertAnnouncementAddition() {
 }
 
 func (h *txHandler) formalize() {
-	messages := []string{h.conditionChangeTreeHash() + h.primaryCoin.ID().String() + *h.additionalData}
+	messages := []string{"0x" + h.conditionChangeTreeHash() + h.primaryCoin.ID().String()[2:] + *h.additionalData}
 	h.spends = append(h.spends, &types.CoinSpend{
 		Coin:         *h.primaryCoin,
 		PuzzleReveal: *h.puzzleReveal,
@@ -223,7 +223,7 @@ func (h *txHandler) formalize() {
 	}
 
 	for _, coin := range h.coins[1:] {
-		messages = append(messages, h.conditionAssertTreeHash()+coin.ID().String()+*h.additionalData)
+		messages = append(messages, "0x"+h.conditionAssertTreeHash()+coin.ID().String()[2:]+*h.additionalData)
 		h.spends = append(h.spends, &types.CoinSpend{
 			Coin:         *coin,
 			PuzzleReveal: *h.puzzleReveal,
@@ -245,13 +245,27 @@ func GenerateUnsignedTransaction(from string, to string, amount string, fee stri
 	if err != nil {
 		return nil, wlog.WrapError(err)
 	}
+	_, fromPuzzleHashBytes, err := puzzlehash1.GetPuzzleHashFromAddress(from)
+	if err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	_, toPuzzleHashBytes, err := puzzlehash1.GetPuzzleHashFromAddress(to)
+	if err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	fromPuzzleHash := fmt.Sprintf("0x%s", hex.EncodeToString(fromPuzzleHashBytes))
+	toPuzzleHash := fmt.Sprintf("0x%s", hex.EncodeToString(toPuzzleHashBytes))
 
 	txHandler := &txHandler{
-		amount:         &_amount,
-		fee:            &_fee,
-		toPuzzleHash:   &to,
-		coins:          coins,
-		additionalData: &additionalData,
+		amount:              &_amount,
+		fee:                 &_fee,
+		fromPuzzleHash:      &fromPuzzleHash,
+		changePuzzleHash:    &fromPuzzleHash,
+		fromPuzzleHashBytes: fromPuzzleHashBytes,
+		toPuzzleHash:        &toPuzzleHash,
+		toPuzzleHashBytes:   toPuzzleHashBytes,
+		coins:               coins,
+		additionalData:      &additionalData,
 	}
 	if err := txHandler.selectCoins(_amount); err != nil {
 		return nil, wlog.WrapError(err)

@@ -33,6 +33,7 @@ type txHandler struct {
 	puzzleReveal               *string
 	spends                     []*types.CoinSpend
 	additionalData             *string
+	publicKey                  *string
 	tx                         *types.UnsignedTx
 }
 
@@ -66,7 +67,7 @@ func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
 
 // TODO:FinalPublicKey
 func (h *txHandler) generatePuzzleReveal() error {
-	_bytes, err := types1.BytesFromHexString("0xa823f8043546c70ed2228f63a43203425cf62f6ba556a68ef02311c3771b6e100c45dedf102f9f0e7f9153e252661528")
+	_bytes, err := types1.BytesFromHexString(*h.publicKey)
 	if err != nil {
 		return wlog.WrapError(err)
 	}
@@ -236,7 +237,7 @@ func (h *txHandler) formalize() {
 	}
 }
 
-func GenerateUnsignedTransaction(from string, to string, amount string, fee string, coins []*types1.Coin, additionalData string) (*types.UnsignedTx, error) {
+func GenerateUnsignedTransaction(from string, to string, amount string, fee string, coins []*types1.Coin, additionalData string, publicKey string) (*types.UnsignedTx, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -266,6 +267,7 @@ func GenerateUnsignedTransaction(from string, to string, amount string, fee stri
 		toPuzzleHashBytes:   toPuzzleHashBytes,
 		coins:               coins,
 		additionalData:      &additionalData,
+		publicKey:           &publicKey,
 	}
 	if err := txHandler.selectCoins(_amount); err != nil {
 		return nil, wlog.WrapError(err)

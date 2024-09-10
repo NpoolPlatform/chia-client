@@ -20,13 +20,13 @@ func TestGenerateUnsignedTransaction(t *testing.T) {
 			Amount:         2000,
 		},
 	}
-	fmt.Println("id: ", coins[0].ID().String())
 	from := "txch1eusf0gslhc6s7xv2w95t5rylf4ftv4r0wq4t0r8p82zfmuq2nzfscn3xfe"
 	to := "txch1jlk3xekckp9uftk7vlec69ludumgrjfhlwgehvmst596q2t2qhjsarzrvh"
 	amount := "1000"
 	fee := "15"
 	additionalData := "ccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"
-	unsignedTx, err := GenerateUnsignedTransaction(from, to, amount, fee, coins, additionalData)
+	publicKey := "0xa823f8043546c70ed2228f63a43203425cf62f6ba556a68ef02311c3771b6e100c45dedf102f9f0e7f9153e252661528"
+	unsignedTx, err := GenerateUnsignedTransaction(from, to, amount, fee, coins, additionalData, publicKey)
 	assert.Nil(t, err)
 	fmt.Println("unsignedTx: messages ", unsignedTx.Messages)
 	fmt.Println("unsignedTx: solution ", unsignedTx.CoinSpends[0].Solution)

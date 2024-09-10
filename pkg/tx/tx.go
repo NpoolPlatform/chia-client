@@ -7,7 +7,6 @@ import (
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
 	puzzle1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
-	rpc "github.com/NpoolPlatform/chia-client/pkg/rpc"
 	types "github.com/NpoolPlatform/chia-client/pkg/types"
 	types1 "github.com/chia-network/go-chia-libs/pkg/types"
 	"github.com/shopspring/decimal"
@@ -18,8 +17,7 @@ type txHandler struct {
 	amount                     *decimal.Decimal
 	changeAmount               *decimal.Decimal
 	fee                        *decimal.Decimal
-	totalBalance               *decimal.Decimal
-	newPuzzleHash              *string
+	toPuzzleHash               *string
 	changePuzzleHash           *string
 	coins                      []*types1.Coin
 	primaryCoin                *types1.Coin
@@ -30,9 +28,6 @@ type txHandler struct {
 	announcementID             *string
 	puzzleReveal               *string
 	spends                     []*types.CoinSpend
-	walletClient               *rpc.MyWalletService
-	fullnodeClient             *rpc.MyFullNodeService
-	coinRecords                []*types1.CoinRecord
 	additionalData             *string
 	tx                         *types.UnsignedTx
 }
@@ -41,20 +36,21 @@ func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
 	coins := []*types1.Coin{}
 	spendableBalance := decimal.NewFromInt(0)
 
-	for _, record := range h.coinRecords {
-		amount := fmt.Sprintf("%d", record.Coin.Amount)
+	length := 0
+	for _, coin := range h.coins {
+		amount := fmt.Sprintf("%d", coin.Amount)
 		spendableBalance = spendableBalance.Add(decimal.RequireFromString(amount))
-		coins = append(coins, &types1.Coin{
-			ParentCoinInfo: record.Coin.ParentCoinInfo,
-			PuzzleHash:     record.Coin.PuzzleHash,
-			Amount:         record.Coin.Amount,
-		})
+		coins = append(coins, coin)
+		length += 1
 		if spendableBalance.Cmp(totalSpend) >= 0 {
 			break
 		}
 	}
 	if len(coins) == 0 {
 		return wlog.Errorf("invalid coin")
+	}
+	if len(coins) != length {
+		return wlog.Errorf("invalid coin length")
 	}
 	if spendableBalance.Cmp(totalSpend) < 0 {
 		return wlog.Errorf("insuffient funds")
@@ -128,12 +124,12 @@ func (h *txHandler) generatePayments() error {
 	}
 	h.changeAmount = &change
 
-	newPuzzleHash, err := types1.Bytes32FromHexString(*h.newPuzzleHash)
+	toPuzzleHash, err := types1.Bytes32FromHexString(*h.toPuzzleHash)
 	if err != nil {
 		return wlog.WrapError(err)
 	}
 	payments := []*types.Payment{{
-		PuzzleHash: newPuzzleHash,
+		PuzzleHash: toPuzzleHash,
 		Amount:     h.amount.String(),
 	}}
 
@@ -240,7 +236,7 @@ func (h *txHandler) formalize() {
 	}
 }
 
-func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) (*types.UnsignedTx, error) {
+func GenerateUnsignedTransaction(from string, to string, amount string, fee string, coins []*types1.Coin, additionalData string) (*types.UnsignedTx, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -251,9 +247,11 @@ func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string
 	}
 
 	txHandler := &txHandler{
-		amount:        &_amount,
-		fee:           &_fee,
-		newPuzzleHash: &newPuzzleHash,
+		amount:         &_amount,
+		fee:            &_fee,
+		toPuzzleHash:   &to,
+		coins:          coins,
+		additionalData: &additionalData,
 	}
 	if err := txHandler.selectCoins(_amount); err != nil {
 		return nil, wlog.WrapError(err)

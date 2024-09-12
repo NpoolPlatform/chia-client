@@ -2,12 +2,12 @@ package tx
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	wlog "github.com/NpoolPlatform/go-service-framework/pkg/wlog"
 
-	puzzle1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
-	rpc "github.com/NpoolPlatform/chia-client/pkg/rpc"
+	puzzlehash1 "github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
 	types "github.com/NpoolPlatform/chia-client/pkg/types"
 	types1 "github.com/chia-network/go-chia-libs/pkg/types"
 	"github.com/shopspring/decimal"
@@ -18,9 +18,12 @@ type txHandler struct {
 	amount                     *decimal.Decimal
 	changeAmount               *decimal.Decimal
 	fee                        *decimal.Decimal
-	totalBalance               *decimal.Decimal
-	newPuzzleHash              *string
+	toPuzzleHash               *string
+	toPuzzleHashBytes          []byte
+	fromPuzzleHash             *string
+	fromPuzzleHashBytes        []byte
 	changePuzzleHash           *string
+	records                    []*types1.CoinRecord
 	coins                      []*types1.Coin
 	primaryCoin                *types1.Coin
 	paymentAddition            *string
@@ -30,10 +33,8 @@ type txHandler struct {
 	announcementID             *string
 	puzzleReveal               *string
 	spends                     []*types.CoinSpend
-	walletClient               *rpc.MyWalletService
-	fullnodeClient             *rpc.MyFullNodeService
-	coinRecords                []*types1.CoinRecord
 	additionalData             *string
+	publicKey                  *string
 	tx                         *types.UnsignedTx
 }
 
@@ -41,14 +42,10 @@ func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
 	coins := []*types1.Coin{}
 	spendableBalance := decimal.NewFromInt(0)
 
-	for _, record := range h.coinRecords {
+	for _, record := range h.records {
 		amount := fmt.Sprintf("%d", record.Coin.Amount)
 		spendableBalance = spendableBalance.Add(decimal.RequireFromString(amount))
-		coins = append(coins, &types1.Coin{
-			ParentCoinInfo: record.Coin.ParentCoinInfo,
-			PuzzleHash:     record.Coin.PuzzleHash,
-			Amount:         record.Coin.Amount,
-		})
+		coins = append(coins, &record.Coin)
 		if spendableBalance.Cmp(totalSpend) >= 0 {
 			break
 		}
@@ -57,21 +54,20 @@ func (h *txHandler) selectCoins(totalSpend decimal.Decimal) error {
 		return wlog.Errorf("invalid coin")
 	}
 	if spendableBalance.Cmp(totalSpend) < 0 {
-		return wlog.Errorf("insuffient funds")
+		return wlog.Errorf("insufficient funds")
 	}
 	h.primaryCoin = coins[0]
 	h.coins = coins
 	return nil
 }
 
-// TODO:FinalPublicKey
 func (h *txHandler) generatePuzzleReveal() error {
-	_bytes, err := types1.BytesFromHexString("0xa823f8043546c70ed2228f63a43203425cf62f6ba556a68ef02311c3771b6e100c45dedf102f9f0e7f9153e252661528")
+	_bytes, err := types1.BytesFromHexString(*h.publicKey)
 	if err != nil {
 		return wlog.WrapError(err)
 	}
 
-	puzzleReveal := "0x" + puzzle1.NewProgramString(_bytes)
+	puzzleReveal := "0x" + puzzlehash1.NewProgramString(_bytes)
 	h.puzzleReveal = &puzzleReveal
 	return nil
 }
@@ -128,12 +124,8 @@ func (h *txHandler) generatePayments() error {
 	}
 	h.changeAmount = &change
 
-	newPuzzleHash, err := types1.Bytes32FromHexString(*h.newPuzzleHash)
-	if err != nil {
-		return wlog.WrapError(err)
-	}
 	payments := []*types.Payment{{
-		PuzzleHash: newPuzzleHash,
+		PuzzleHash: types1.Bytes32(h.toPuzzleHashBytes),
 		Amount:     h.amount.String(),
 	}}
 
@@ -212,7 +204,7 @@ func (h *txHandler) generateAssertAnnouncementAddition() {
 }
 
 func (h *txHandler) formalize() {
-	messages := []string{h.conditionChangeTreeHash() + h.primaryCoin.ID().String() + *h.additionalData}
+	messages := []string{"0x" + h.conditionChangeTreeHash() + h.primaryCoin.ID().String()[2:] + *h.additionalData}
 	h.spends = append(h.spends, &types.CoinSpend{
 		Coin:         *h.primaryCoin,
 		PuzzleReveal: *h.puzzleReveal,
@@ -227,7 +219,7 @@ func (h *txHandler) formalize() {
 	}
 
 	for _, coin := range h.coins[1:] {
-		messages = append(messages, h.conditionAssertTreeHash()+coin.ID().String()+*h.additionalData)
+		messages = append(messages, "0x"+h.conditionAssertTreeHash()+coin.ID().String()[2:]+*h.additionalData)
 		h.spends = append(h.spends, &types.CoinSpend{
 			Coin:         *coin,
 			PuzzleReveal: *h.puzzleReveal,
@@ -240,7 +232,7 @@ func (h *txHandler) formalize() {
 	}
 }
 
-func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string) (*types.UnsignedTx, error) {
+func GenerateUnsignedTransaction(from string, to string, amount string, fee string, records []*types1.CoinRecord, additionalData string, publicKey string) (*types.UnsignedTx, error) {
 	_amount, err := decimal.NewFromString(amount)
 	if err != nil {
 		return nil, wlog.WrapError(err)
@@ -249,11 +241,28 @@ func GenerateUnsignedTransaction(amount string, newPuzzleHash string, fee string
 	if err != nil {
 		return nil, wlog.WrapError(err)
 	}
+	_, fromPuzzleHashBytes, err := puzzlehash1.GetPuzzleHashFromAddress(from)
+	if err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	_, toPuzzleHashBytes, err := puzzlehash1.GetPuzzleHashFromAddress(to)
+	if err != nil {
+		return nil, wlog.WrapError(err)
+	}
+	fromPuzzleHash := fmt.Sprintf("0x%s", hex.EncodeToString(fromPuzzleHashBytes))
+	toPuzzleHash := fmt.Sprintf("0x%s", hex.EncodeToString(toPuzzleHashBytes))
 
 	txHandler := &txHandler{
-		amount:        &_amount,
-		fee:           &_fee,
-		newPuzzleHash: &newPuzzleHash,
+		amount:              &_amount,
+		fee:                 &_fee,
+		fromPuzzleHash:      &fromPuzzleHash,
+		changePuzzleHash:    &fromPuzzleHash,
+		fromPuzzleHashBytes: fromPuzzleHashBytes,
+		toPuzzleHash:        &toPuzzleHash,
+		toPuzzleHashBytes:   toPuzzleHashBytes,
+		records:             records,
+		additionalData:      &additionalData,
+		publicKey:           &publicKey,
 	}
 	if err := txHandler.selectCoins(_amount); err != nil {
 		return nil, wlog.WrapError(err)

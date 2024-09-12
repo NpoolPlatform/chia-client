@@ -16,7 +16,7 @@ type treeNode struct {
 
 func (h *txHandler) conditionChangeTreeHash() string {
 	announcementMessage, _ := types1.BytesFromHexString(*h.announcementMessage)
-	toPuzzleHash, _ := types1.BytesFromHexString(*h.newPuzzleHash)
+	toPuzzleHash, _ := types1.BytesFromHexString(*h.toPuzzleHash)
 	changePuzzleHash, _ := types1.BytesFromHexString(*h.changePuzzleHash)
 	transferAmount, _ := types1.BytesFromHexString(h.amount.String())
 	changeAmount, _ := types1.BytesFromHexString(h.changeAmount.String())

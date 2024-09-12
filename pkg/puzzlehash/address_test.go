@@ -44,7 +44,7 @@ func TestPH2Addr(t *testing.T) {
 	if !assert.Nil(t, err) {
 		t.Fatal(err)
 	}
-	address, err := GetAddressFromPuzzleHash(puzzleHash, prefix)
+	address, err := GetAddressFromPuzzleHash(puzzleHash[:], prefix)
 	if !assert.Nil(t, err) {
 		t.Fatal(err)
 	}

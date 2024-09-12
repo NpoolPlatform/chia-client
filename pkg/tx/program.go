@@ -91,8 +91,6 @@ func (h *txHandler) conditionAssertTreeHash() string {
 	}
 
 	treeH1 := sha256tree(&tree1)
-
-	fmt.Println(hex.EncodeToString(treeH1[:]))
 	return hex.EncodeToString(treeH1[:])
 }
 

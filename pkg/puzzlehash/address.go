@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil/bech32"
+	"github.com/chia-network/go-chia-libs/pkg/types"
 	bls "github.com/cloudflare/circl/ecc/bls12381"
 )
 
@@ -17,7 +18,7 @@ func GetAddressFromPuzzleHash(ph []byte, prefix string) (string, error) {
 	return bech32.EncodeM(prefix, bits)
 }
 
-func GetPuzzleHashFromAddress(address string) (string, []byte, error) {
+func GetPuzzleHashFromAddress(address string) (string, *types.Bytes32, error) {
 	prefix, data, err := bech32.Decode(address)
 	if err != nil {
 		return "", nil, err
@@ -26,7 +27,13 @@ func GetPuzzleHashFromAddress(address string) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	return prefix, puzzleHash, nil
+
+	puzzleHashBytes, err := types.BytesToBytes32(puzzleHash)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return prefix, &puzzleHashBytes, nil
 }
 
 func NewAddressFromPkBytes(pkBytes []byte, prefix string) (string, error) {
@@ -47,6 +54,16 @@ func NewPuzzleHashFromPkBytes(pkBytes []byte) (string, error) {
 	}
 
 	return hex.EncodeToString(NewPuzzleHashFromPK(&p)), nil
+}
+
+func NewPuzzleHashBytesFromPkBytes(pkBytes []byte) ([]byte, error) {
+	var p bls.G1
+	err := p.SetBytes(pkBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewPuzzleHashFromPK(&p), nil
 }
 
 func NewAddressFromPK(pk *bls.G1, prefix string) (string, error) {

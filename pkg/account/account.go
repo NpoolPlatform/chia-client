@@ -119,11 +119,15 @@ func (ca *Account) genSKFromSeed() (err error) {
 }
 
 func (ca *Account) Sign(msg []byte) []byte {
+	pkBytes, _ := ca.GetPKBytes()
+	msg = append(pkBytes, msg...)
 	return bls.Sign(ca.PrivateKey, msg)
 }
 
-func (ca *Account) Signs(msgs [][]byte) ([]byte, error) {
+func AggregateSigns(msgs [][]byte) ([]byte, error) {
+	return bls.Aggregate[bls.KeyG1SigG2](*new(bls.KeyG1SigG2), msgs)
+}
 
-	// bls.Aggregate(nil, msgs)
-	return nil, nil
+func AggregatePubKeys(pks [][]byte) ([]byte, error) {
+	return bls.Aggregate[bls.KeyG1SigG2](*new(bls.KeyG1SigG2), pks)
 }

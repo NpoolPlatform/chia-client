@@ -49,7 +49,7 @@ func TestAccount(t *testing.T) {
 }
 
 func TestPuzzleHash(t *testing.T) {
-	puzzleHash := "txch12g9w53gn445fj8j4mesrvqphry887y25tuja2renw4uhza7lamhqxwsmtu"
+	puzzleHash := "txch1wtlzkt6kmykf3d2e422hsk050ggxu95zguw5qn4sjgkgc2u0hygq6wwcwk"
 	skStr := "1c6198abdad4569b09554e48abc7f78d2c2833ed8235b862171a0ecf9db62d51"
 
 	skBytes, err := hex.DecodeString(skStr)

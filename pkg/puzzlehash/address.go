@@ -75,19 +75,7 @@ func NewAddressFromPK(pk *bls.G1, prefix string) (string, error) {
 }
 
 func NewPuzzleHashFromPK(pk *bls.G1) []byte {
-	expPk := opPubKeyForExp(
-		opSha256(
-			pk.BytesCompressed(),
-			defaultHiddenHash,
-		),
-	)
-	// generate synthetic key
-	syntheticKeyBytes := opPointAdd(
-		pk,
-		&expPk,
-	)
-
-	return genAddress(syntheticKeyBytes)
+	return genAddress(pk.BytesCompressed())
 }
 
 func NewAddressFromPKHex(pkHex, prefix string) (string, error) {

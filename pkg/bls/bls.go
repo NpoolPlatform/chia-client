@@ -23,8 +23,10 @@ var (
 )
 
 const (
-	dstG1          = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_"
-	dstG2          = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"
+	dstG1 = "BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_"
+	// dstG2          = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"
+	// adapt to chia`s format
+	dstG2          = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_AUG_"
 	BLS12_381_SALT = "BLS-SIG-KEYGEN-SALT-"
 )
 

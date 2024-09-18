@@ -11,7 +11,7 @@ import (
 var (
 	testPkBytes, _ = hex.DecodeString("940dd34f3e9edd8db760ea233ba45ab820e63ce2e4b19e3e185ed7f32b5950442863181a03a24185dfbefeb6f8c001e8")
 
-	testAddress = "txch12g9w53gn445fj8j4mesrvqphry887y25tuja2renw4uhza7lamhqxwsmtu"
+	testAddress = "txch1wtlzkt6kmykf3d2e422hsk050ggxu95zguw5qn4sjgkgc2u0hygq6wwcwk"
 )
 
 func TestGenerateAddress(t *testing.T) {

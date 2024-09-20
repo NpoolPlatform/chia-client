@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net/url"
 
 	"github.com/NpoolPlatform/chia-client/pkg/account"
+	"github.com/NpoolPlatform/chia-client/pkg/client"
 	"github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
-	"github.com/chia-network/go-chia-libs/pkg/rpc"
+	"github.com/chia-network/go-chia-libs/pkg/streamable"
 	"github.com/chia-network/go-chia-libs/pkg/types"
 )
 
@@ -17,119 +17,91 @@ const (
 	aggsig_data = "ccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb"
 )
 
-type TxInfo struct {
-	From                string
-	To                  string
-	Amount              uint64
-	Change              uint64
-	Fee                 uint64
-	AggregatedSignature string
-	Spends              []*Spend
+type UnsignedTx struct {
+	From   string
+	Spends []*UnsignedSpend
 }
 
-type Spend struct {
-	Coin         *types.Coin `json:"coin" streamable:""`
-	PuzzleReveal string      `json:"puzzle_reveal" streamable:""`
-	Solution     string      `json:"solution" streamable:""`
-	Message      string      `json:"message" streamable:""`
+type UnsignedSpend struct {
+	Coin     *types.Coin
+	Solution []byte
+	Message  string
 }
 
 func main() {
 	TxDemo()
-	// TestSign()
 	// TestCreateSolution()
-	// TestPuzzleReveal()
 	// TestTreeHash()
-
+	// TestClient()
 }
 
-func TestSign() {
-	fromSKHex := "3fefe074898e3ac7c6c17a40ec390d7c4ade53fde6c39339a93d03012bd3b7f7"
-	// fromPKHex := "b5cdc71cbceee853fdc397a209640097852496d2611c252c41477dc68ea54f2b507b9a34cc909f77a70ea06824774a3d"
-	// fromAddress := "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt"
-	fromAcc, _ := account.GenAccountBySKHex(fromSKHex)
-	fmt.Println(fromAcc.GetPKHex())
-	fmt.Println(fromAcc.GetAddress(false))
-	fmt.Println(hex.EncodeToString(fromAcc.Sign([]byte("hello"))))
-}
+func TestClient() {
+	cli := client.NewClient("172.16.31.202", 18444)
+	fmt.Println(cli.GetSyncStatus())
 
-func TxDemo() {
-	// fromAcc, err := account.GenAccount()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// fmt.Println(fromAcc.GetSKHex())
-	// fmt.Println(fromAcc.GetPKHex())
-	// fmt.Println(fromAcc.GetAddress(true))
-
-	// toSKHex:=34215bfd598d6b1db74b27048aecf338240fee5c47555fdb5e19a390c145d5d0
-	// toPKHex:=a6bdb8fb599e40b619d329667012a629c487f0cdd60c7159b571c19b439f407c48ebc796ade9e5968bbd09a40721bf25
-	// toAddress := "txch1pccwlj52r39yul8hp5mm3q96462up8k3xk83muwjyjhvy2vxnqwsnt40tz"
-
-	// toAmount := uint64(100000001)
-
-	fromSKHex := "3fefe074898e3ac7c6c17a40ec390d7c4ade53fde6c39339a93d03012bd3b7f7"
-	// fromPKHex := "b5cdc71cbceee853fdc397a209640097852496d2611c252c41477dc68ea54f2b507b9a34cc909f77a70ea06824774a3d"
-	// fromAddress := "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt"
-	fromAcc, err := account.GenAccountBySKHex(fromSKHex)
-	if err != nil {
-		fmt.Println(1, err)
-		return
-	}
-
-	fmt.Println(fromAcc.GetAddress(false))
-
-	txInfo := TxInfo{
-		From:   "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt",
-		To:     "txch1pccwlj52r39yul8hp5mm3q96462up8k3xk83muwjyjhvy2vxnqwsnt40tz",
-		Amount: 66,
-		Fee:    100,
-	}
-
-	_, fromPH, err := puzzlehash.GetPuzzleHashFromAddress(txInfo.From)
+	_, fromPH, err := puzzlehash.GetPuzzleHashFromAddress("txch1pccwlj52r39yul8hp5mm3q96462up8k3xk83muwjyjhvy2vxnqwsnt40tz")
 	if err != nil {
 		fmt.Println(2, err)
 		return
 	}
 
-	_, toPH, err := puzzlehash.GetPuzzleHashFromAddress(txInfo.To)
+	fmt.Println(cli.GetBalance(*fromPH))
+
+	coinInfos, err := cli.SelectCoins(106732, *fromPH)
+	fmt.Println(err)
+	fmt.Println(PrettyStruct(coinInfos))
+}
+
+func TxDemo() {
+	// ----------------------------Check Node Heath-----------------------------
+	cli := client.NewClient("172.16.31.202", 18444)
+	synced, err := cli.GetSyncStatus()
+	if err != nil {
+		fmt.Println(1, err)
+		return
+	}
+	if !synced {
+		fmt.Println("node have not synced")
+		return
+	}
+
+	// ----------------------------Prepare UnsignedTX-----------------------------
+	From := "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt"
+	To := "txch1pccwlj52r39yul8hp5mm3q96462up8k3xk83muwjyjhvy2vxnqwsnt40tz"
+	Amount := uint64(66)
+	Fee := uint64(100)
+
+	unsignedTx := UnsignedTx{
+		From: From,
+	}
+
+	_, fromPH, err := puzzlehash.GetPuzzleHashFromAddress(From)
+	if err != nil {
+		fmt.Println(2, err)
+		return
+	}
+
+	_, toPH, err := puzzlehash.GetPuzzleHashFromAddress(To)
 	if err != nil {
 		fmt.Println(3, err)
 		return
 	}
 
-	cli, err := rpc.NewClient(rpc.ConnectionModeHTTP, rpc.WithAutoConfig(), rpc.WithBaseURL(&url.URL{Scheme: "https", Host: "localhost"}))
-	if err != nil {
-		fmt.Println(4, err)
-		return
-	}
-
-	coinsRsp, _, err := cli.FullNodeService.GetCoinRecordsByPuzzleHash(&rpc.GetCoinRecordsByPuzzleHashOptions{
-		PuzzleHash:        *fromPH,
-		IncludeSpentCoins: false,
-	})
+	selectedCoins, err := cli.SelectCoins(Amount+Fee, *fromPH)
 	if err != nil {
 		fmt.Println(5, err)
 		return
 	}
 
-	selectedCoins, err := selectCoins(txInfo.Amount, txInfo.Fee, coinsRsp.CoinRecords)
-	if err != nil {
-		fmt.Println(5, err)
-		return
-	}
-
-	paymentCoins, change, err := calPaymentCoins(txInfo.Amount, txInfo.Fee, txInfo.From, txInfo.To, selectedCoins)
+	paymentCoins, Change, err := calPaymentCoins(Amount, Fee, From, To, selectedCoins)
 	if err != nil {
 		fmt.Println(6, err)
 		return
 	}
-	txInfo.Change = change
 
 	createAnnounceMSG := genCreateAnoucementMessage(selectedCoins, paymentCoins)
 
-	createSolution, err := genCreateSolution(createAnnounceMSG, paymentCoins, txInfo.Fee)
+	createSolution, err := genCreateSolution(createAnnounceMSG, paymentCoins, Fee)
 	if err != nil {
 		fmt.Println(7, err)
 		return
@@ -141,24 +113,17 @@ func TxDemo() {
 		return
 	}
 
-	pkBytes, err := fromAcc.GetPKBytes()
-	if err != nil {
-		fmt.Println(9, err)
-		return
-	}
-
-	spends := []*Spend{
+	spends := []*UnsignedSpend{
 		{
-			Coin:         selectedCoins[0],
-			Solution:     createSolution,
-			PuzzleReveal: puzzlehash.NewProgramString(pkBytes),
+			Coin:     selectedCoins[0],
+			Solution: createSolution,
 			Message: genUnsignedCreateMessage(
 				createAnnounceMSG,
 				types.Bytes32ToBytes(*toPH),
 				types.Bytes32ToBytes(*fromPH),
-				txInfo.Amount,
-				txInfo.Change,
-				txInfo.Fee,
+				Amount,
+				Change,
+				Fee,
 				selectedCoins[0],
 			),
 		},
@@ -172,21 +137,54 @@ func TxDemo() {
 		}
 
 		spends = append(spends,
-			&Spend{
-				Coin:         coin,
-				Solution:     assertSolution,
-				PuzzleReveal: puzzlehash.NewProgramString(pkBytes),
-				Message:      assertMsg,
+			&UnsignedSpend{
+				Coin:     coin,
+				Solution: assertSolution,
+				Message:  assertMsg,
 			})
 	}
 
+	unsignedTx.Spends = spends
+
+	// ----------------------------SignTx-----------------------------
+	// fromSKHex := "3fefe074898e3ac7c6c17a40ec390d7c4ade53fde6c39339a93d03012bd3b7f7"
+	// fromPKHex := "b5cdc71cbceee853fdc397a209640097852496d2611c252c41477dc68ea54f2b507b9a34cc909f77a70ea06824774a3d"
+	// fromAddress := "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt"
+	fromSKHex := "3fefe074898e3ac7c6c17a40ec390d7c4ade53fde6c39339a93d03012bd3b7f7"
+	fromAcc, err := account.GenAccountBySKHex(fromSKHex)
+	if err != nil {
+		fmt.Println(1, err)
+		return
+	}
+
+	pkBytes, err := fromAcc.GetPKBytes()
+	if err != nil {
+		fmt.Println(9, err)
+		return
+	}
+
+	signedSpends := []types.CoinSpend{}
+	_signedSpends := []CoinSpend{}
+
 	signs := [][]byte{}
-	for _, spend := range spends {
+	for _, spend := range unsignedTx.Spends {
 		msg, err := hex.DecodeString(spend.Message)
 		if err != nil {
 			fmt.Println(11, err)
 			return
 		}
+
+		signedSpends = append(signedSpends, types.CoinSpend{
+			Coin:         *spend.Coin,
+			PuzzleReveal: puzzlehash.NewProgramBytes(pkBytes),
+			Solution:     spend.Solution,
+		})
+
+		_signedSpends = append(_signedSpends, CoinSpend{
+			Coin:         *spend.Coin,
+			PuzzleReveal: puzzlehash.NewProgramBytes(pkBytes),
+			Solution:     spend.Solution,
+		})
 		signs = append(signs, fromAcc.Sign(msg))
 	}
 
@@ -196,19 +194,42 @@ func TxDemo() {
 		return
 	}
 
-	fmt.Println(hex.EncodeToString(aggregateSign))
-	fmt.Println(PrettyStruct(spends))
+	aggSign, err := types.BytesToBytes96(aggregateSign)
+	if err != nil {
+		fmt.Println(13, err)
+		return
+	}
+
+	spendBundle := types.SpendBundle{
+		AggregatedSignature: types.G2Element(aggSign),
+		CoinSpends:          signedSpends,
+	}
+
+	_spendBundle := SpendBundle{
+		AggregatedSignature: aggSign[:],
+		CoinSpends:          _signedSpends,
+	}
+
+	sssss, err := streamable.Marshal(_spendBundle)
+	if err != nil {
+		fmt.Println(14, err)
+		return
+	}
+	_sssss := sha256.Sum256(sssss)
+	fmt.Println(hex.EncodeToString(_sssss[:]))
+	// ----------------------------BroadcostTX-----------------------------
+	fmt.Println(PrettyStruct(spendBundle))
+	fmt.Println(cli.PushTX(spendBundle))
 }
 
-func TestPuzzleReveal() {
-	skHexStr := "1c6198abdad4569b09554e48abc7f78d2c2833ed8235b862171a0ecf9db62d51"
-	acc, err := account.GenAccountBySKHex(skHexStr)
-	fmt.Println(err)
-	fmt.Println(acc.GetPKHex())
-
-	pkHex, err := hex.DecodeString("b8d50671a208e33f1fd8f85b664f5776a106a3f0c615da5068ca0fc153be606622bc4ac928ef3cf8283241ef4f44a866")
-
-	fmt.Println(puzzlehash.NewProgramString(pkHex))
+type SpendBundle struct {
+	CoinSpends          []CoinSpend `json:"coin_spends" streamable:""`
+	AggregatedSignature []byte      `json:"aggregated_signature" streamable:""`
+}
+type CoinSpend struct {
+	Coin         types.Coin `json:"coin" streamable:""`
+	PuzzleReveal []byte     `json:"puzzle_reveal" streamable:"SerializedProgram"`
+	Solution     []byte     `json:"solution" streamable:"SerializedProgram"`
 }
 
 func TestCreateSolution() {
@@ -322,30 +343,32 @@ func genUnsignedAssertMessage(announceMsg []byte, firstCoin, coin *types.Coin) (
 	return unsignMsg, nil
 }
 
-func genAssertSolution(createAnnounceMSG []byte, firstCoin *types.Coin) (string, error) {
+func genAssertSolution(createAnnounceMSG []byte, firstCoin *types.Coin) ([]byte, error) {
 	msgSum := sha256.New()
 	_, err := msgSum.Write(types.Bytes32ToBytes(firstCoin.ID()))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	_, err = msgSum.Write(createAnnounceMSG)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return fmt.Sprintf(
+	solutionStr := fmt.Sprintf(
 		"ff80ffff01ffff3dffa0%v8080ff8080",
 		hex.EncodeToString(msgSum.Sum(nil)),
-	), nil
+	)
+
+	return hex.DecodeString(solutionStr)
 }
 
-func genCreateSolution(createAnnounceMSG []byte, paymentCoins []*types.Coin, fee uint64) (string, error) {
+func genCreateSolution(createAnnounceMSG []byte, paymentCoins []*types.Coin, fee uint64) ([]byte, error) {
 	if len(paymentCoins) != 2 {
-		return "", fmt.Errorf("invalid payment coins")
+		return nil, fmt.Errorf("invalid payment coins")
 	}
 
-	return fmt.Sprintf(
+	solutionStr := fmt.Sprintf(
 		"ff80ffff01ffff3cffa0%v80ffff33ffa0%vff%v80ffff33ffa0%vff%v80ffff34ff%v8080ff8080",
 		hex.EncodeToString(createAnnounceMSG),
 		hex.EncodeToString(types.Bytes32ToBytes(paymentCoins[0].PuzzleHash)),
@@ -353,7 +376,9 @@ func genCreateSolution(createAnnounceMSG []byte, paymentCoins []*types.Coin, fee
 		hex.EncodeToString(types.Bytes32ToBytes(paymentCoins[1].PuzzleHash)),
 		hex.EncodeToString(encodeU64ToCLVMBytes(paymentCoins[1].Amount)),
 		hex.EncodeToString(encodeU64ToCLVMBytes(fee)),
-	), nil
+	)
+
+	return hex.DecodeString(solutionStr)
 }
 
 func genCreateAnoucementMessage(selectedCoins, paymentCoins []*types.Coin) []byte {

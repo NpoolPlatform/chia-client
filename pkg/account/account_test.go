@@ -76,3 +76,19 @@ func TestPuzzleHash(t *testing.T) {
 
 	assert.Equal(t, puzzleHash, phStr)
 }
+
+func TestSign(t *testing.T) {
+	fromSKHex := "3fefe074898e3ac7c6c17a40ec390d7c4ade53fde6c39339a93d03012bd3b7f7"
+	msg := "hello"
+	signatureHex := "b6cff30cf27be57b6923535a4c84324160a13f166c553bf38935807848f5755ef53965e71a6bc878106ec880ac47e27b0c9aa5a69e74d89b7d432389e3468956f58e854a224b194b11d58e9a935c2533301463c42cf8cde4d5cca3a4f0dd9a2c"
+
+	// fromPKHex := "b5cdc71cbceee853fdc397a209640097852496d2611c252c41477dc68ea54f2b507b9a34cc909f77a70ea06824774a3d"
+	// fromAddress := "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt"
+	fromAcc, err := account.GenAccountBySKHex(fromSKHex)
+	if !assert.Nil(t, err) {
+		t.Fatal(err)
+	}
+
+	ret := hex.EncodeToString(fromAcc.Sign([]byte(msg)))
+	assert.Equal(t, signatureHex, ret)
+}

@@ -8,6 +8,9 @@ import (
 	"github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
 )
 
+// have not impl verify signature,
+// please use 'chia keys verify --message "" --signature "" --public_key ""' to verify
+
 const (
 	IKM_BYTES_LEN = 128
 

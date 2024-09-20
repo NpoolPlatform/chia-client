@@ -68,7 +68,7 @@ func TxDemo() {
 	// ----------------------------Prepare UnsignedTX-----------------------------
 	From := "txch1y2vqher2radvvkspad9l46jrewv63tm3huv9ewl2d37594eg3lrqtrlkgt"
 	To := "txch1pccwlj52r39yul8hp5mm3q96462up8k3xk83muwjyjhvy2vxnqwsnt40tz"
-	Amount := uint64(66)
+	Amount := uint64(0x7f81)
 	Fee := uint64(100)
 
 	unsignedTx := UnsignedTx{
@@ -440,8 +440,10 @@ func encodeU64ToCLVMBytes(amount uint64) []byte {
 	if len(hexAmount)%2 != 0 {
 		hexAmount = fmt.Sprintf("0%v", hexAmount)
 	}
-
 	if amount >= 0x80 {
+		if hexAmount[:2] >= "80" {
+			hexAmount = fmt.Sprintf("00%v", hexAmount)
+		}
 		hexAmount = fmt.Sprintf("8%x%v", len(hexAmount)/2, hexAmount)
 	}
 	hexAmountBytes, _ := hex.DecodeString(hexAmount)
@@ -452,6 +454,9 @@ func encodeU64ToBytes(amount uint64) []byte {
 	hexAmount := fmt.Sprintf("%x", amount)
 	if len(hexAmount)%2 != 0 {
 		hexAmount = fmt.Sprintf("0%v", hexAmount)
+	}
+	if hexAmount[:2] >= "80" {
+		hexAmount = fmt.Sprintf("00%v", hexAmount)
 	}
 	hexAmountBytes, _ := hex.DecodeString(hexAmount)
 	return hexAmountBytes

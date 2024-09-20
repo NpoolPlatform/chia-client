@@ -132,19 +132,27 @@ func selectCoins(totalAmount uint64, coins []types.CoinRecord) ([]*types.Coin, e
 
 	return aimCoins, nil
 }
-
 func TxHash(spendBundele types.SpendBundle) (string, error) {
 	txHashList := make([]string, 0)
-	txHashList = append(txHashList, hex.EncodeToString(uint32to4bytes(uint32(len(spendBundele.CoinSpends)))))
+	txHashList = append(txHashList, formateUint64(uint64(len(spendBundele.CoinSpends))))
 	for _, cs := range spendBundele.CoinSpends {
-		txHashList = append(txHashList, strings.TrimPrefix(hex.EncodeToString(types.Bytes32ToBytes(cs.Coin.ParentCoinInfo)), "0x"))
-		txHashList = append(txHashList, strings.TrimPrefix(hex.EncodeToString(types.Bytes32ToBytes(cs.Coin.PuzzleHash)), "0x"))
-		txHashList = append(txHashList, hex.EncodeToString(uint64to4bytes(cs.Coin.Amount)))
-		txHashList = append(txHashList, strings.TrimPrefix(hex.EncodeToString([]byte(cs.PuzzleReveal)), "0x"))
-		txHashList = append(txHashList, strings.TrimPrefix(hex.EncodeToString([]byte(cs.Solution)), "0x"))
+		txHashList = append(txHashList,
+			hex.EncodeToString(types.Bytes32ToBytes(cs.Coin.ParentCoinInfo)))
+		txHashList = append(txHashList,
+			hex.EncodeToString(types.Bytes32ToBytes(cs.Coin.PuzzleHash)))
+		txHashList = append(txHashList,
+			toBigEndingHex(cs.Coin.Amount))
+		txHashList = append(txHashList,
+			hex.EncodeToString([]byte(cs.PuzzleReveal)))
+		txHashList = append(txHashList,
+			hex.EncodeToString([]byte(cs.Solution)))
 	}
-	txHashList = append(txHashList, strings.TrimPrefix(hex.EncodeToString(types.Bytes96ToBytes(types.Bytes96(spendBundele.AggregatedSignature))), "0x"))
-	m, err := hex.DecodeString(strings.Join(txHashList, ""))
+	txHashList = append(txHashList,
+		hex.EncodeToString(types.Bytes96ToBytes(types.Bytes96(spendBundele.AggregatedSignature))))
+	streamTX := strings.Join(txHashList, "")
+	fmt.Println(PrettyStruct(txHashList))
+	streamTX = strings.ReplaceAll(streamTX, "0x", "")
+	m, err := hex.DecodeString(streamTX)
 	if err != nil {
 		return "", err
 	}
@@ -152,18 +160,16 @@ func TxHash(spendBundele types.SpendBundle) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func uint32to4bytes(num uint32) []byte {
-	hexNum := fmt.Sprintf("00%x", num)
-	hexNum = hexNum[len(hexNum)-2:]
-	hexNumBytes, _ := hex.DecodeString(hexNum)
-	return hexNumBytes
+func toBigEndingHex(num uint64) string {
+	hexStr := fmt.Sprintf("0000000000000000%x", num)
+	hexStr = hexStr[len(hexStr)-16:]
+	return hexStr
 }
 
-func uint64to4bytes(num uint64) []byte {
-	hexNum := fmt.Sprintf("0000%x", num)
-	hexNum = hexNum[len(hexNum)-4:]
-	hexNumBytes, _ := hex.DecodeString(hexNum)
-	return hexNumBytes
+func formateUint64(num uint64) string {
+	hexStr := fmt.Sprintf("00000000%x", num)
+	hexStr = hexStr[len(hexStr)-8:]
+	return hexStr
 }
 
 func PrettyStruct(data interface{}) string {

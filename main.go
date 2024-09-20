@@ -9,7 +9,6 @@ import (
 	"github.com/NpoolPlatform/chia-client/pkg/account"
 	"github.com/NpoolPlatform/chia-client/pkg/client"
 	"github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
-	"github.com/chia-network/go-chia-libs/pkg/streamable"
 	"github.com/chia-network/go-chia-libs/pkg/types"
 )
 
@@ -164,7 +163,6 @@ func TxDemo() {
 	}
 
 	signedSpends := []types.CoinSpend{}
-	_signedSpends := []CoinSpend{}
 
 	signs := [][]byte{}
 	for _, spend := range unsignedTx.Spends {
@@ -175,12 +173,6 @@ func TxDemo() {
 		}
 
 		signedSpends = append(signedSpends, types.CoinSpend{
-			Coin:         *spend.Coin,
-			PuzzleReveal: puzzlehash.NewProgramBytes(pkBytes),
-			Solution:     spend.Solution,
-		})
-
-		_signedSpends = append(_signedSpends, CoinSpend{
 			Coin:         *spend.Coin,
 			PuzzleReveal: puzzlehash.NewProgramBytes(pkBytes),
 			Solution:     spend.Solution,
@@ -205,31 +197,9 @@ func TxDemo() {
 		CoinSpends:          signedSpends,
 	}
 
-	_spendBundle := SpendBundle{
-		AggregatedSignature: aggSign[:],
-		CoinSpends:          _signedSpends,
-	}
-
-	sssss, err := streamable.Marshal(_spendBundle)
-	if err != nil {
-		fmt.Println(14, err)
-		return
-	}
-	_sssss := sha256.Sum256(sssss)
-	fmt.Println(hex.EncodeToString(_sssss[:]))
 	// ----------------------------BroadcostTX-----------------------------
 	fmt.Println(PrettyStruct(spendBundle))
 	fmt.Println(cli.PushTX(spendBundle))
-}
-
-type SpendBundle struct {
-	CoinSpends          []CoinSpend `json:"coin_spends" streamable:""`
-	AggregatedSignature []byte      `json:"aggregated_signature" streamable:""`
-}
-type CoinSpend struct {
-	Coin         types.Coin `json:"coin" streamable:""`
-	PuzzleReveal []byte     `json:"puzzle_reveal" streamable:"SerializedProgram"`
-	Solution     []byte     `json:"solution" streamable:"SerializedProgram"`
 }
 
 func TestCreateSolution() {

@@ -37,6 +37,10 @@ func (cli *Client) GetSyncStatus() (bool, error) {
 		return false, fmt.Errorf("cannot get response from node")
 	}
 
+	if resp.Error.ToPointer() != nil {
+		return false, fmt.Errorf(*resp.Error.ToPointer())
+	}
+
 	syncState := resp.BlockchainState.ToPointer().Sync
 	return syncState.Synced, nil
 }
@@ -57,6 +61,10 @@ func (cli *Client) GetBalance(puzzleHash types.Bytes32) (uint64, error) {
 
 	if resp == nil {
 		return 0, fmt.Errorf("cannot get response from node")
+	}
+
+	if resp.Error.ToPointer() != nil {
+		return 0, fmt.Errorf(*resp.Error.ToPointer())
 	}
 
 	total := uint64(0)
@@ -90,11 +98,15 @@ func (cli *Client) SelectCoins(totalAmount uint64, puzzleHash types.Bytes32) ([]
 		return nil, fmt.Errorf("cannot get response from node")
 	}
 
+	if resp.Error.ToPointer() != nil {
+		return nil, fmt.Errorf(*resp.Error.ToPointer())
+	}
+
 	return selectCoins(totalAmount, resp.CoinRecords)
 }
 
-func (cli *Client) PushTX(SpendBundle types.SpendBundle) (string, error) {
-	resp, httpResp, err := cli.fullNodeService.PushTX(&FullNodePushTXOptions{SpendBundle})
+func (cli *Client) PushTX(SpendBundle *types.SpendBundle) (string, error) {
+	resp, httpResp, err := cli.fullNodeService.PushTX(&FullNodePushTXOptions{*SpendBundle})
 	if err != nil {
 		return "", err
 	}
@@ -107,11 +119,89 @@ func (cli *Client) PushTX(SpendBundle types.SpendBundle) (string, error) {
 		return "", fmt.Errorf("cannot get response from node")
 	}
 
+	if resp.Error.ToPointer() != nil {
+		return "", fmt.Errorf(*resp.Error.ToPointer())
+	}
+
 	if !resp.Success {
 		return "", fmt.Errorf("failed to push tx, status:%v", resp.Status)
 	}
 
-	return TxHash(SpendBundle)
+	return calTxHash(SpendBundle)
+}
+
+func (cli *Client) CheckTxIDInMempool(txid types.Bytes32) (bool, error) {
+	resp, httpResp, err := cli.fullNodeService.CheckTxIDInMempool(&CheckTxIDInMempoolOptions{
+		TxID: txid,
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	if httpResp.StatusCode != 200 {
+		return false, fmt.Errorf("failed to request, status code:%v", httpResp.StatusCode)
+	}
+
+	if resp == nil {
+		return false, fmt.Errorf("cannot get response from node")
+	}
+
+	errMsg := resp.Error.ToPointer()
+	if errMsg != nil && strings.Contains(*errMsg, "not in the mempool") {
+		return false, nil
+	}
+
+	if resp.Error.ToPointer() != nil {
+		return false, fmt.Errorf(*resp.Error.ToPointer())
+	}
+
+	if !resp.Success {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// all coin spent return true
+func (cli *Client) CheckCoinsIsSpent(coinids []string) (bool, error) {
+	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByNames(
+		&GetCoinRecordByNamesOptions{
+			Names:             coinids,
+			IncludeSpentCoins: true,
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+
+	if httpResp.StatusCode != 200 {
+		return false, fmt.Errorf("failed to request, status code:%v", httpResp.StatusCode)
+	}
+
+	if resp == nil {
+		return false, fmt.Errorf("cannot get response from node")
+	}
+
+	if resp.Error.ToPointer() != nil {
+		return false, fmt.Errorf(*resp.Error.ToPointer())
+	}
+
+	if !resp.Success {
+		return false, fmt.Errorf("failed to query from node")
+	}
+
+	if len(resp.CoinRecords) != len(coinids) {
+		return false, fmt.Errorf("some records not found")
+	}
+
+	for _, record := range resp.CoinRecords {
+		if !record.Spent {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 func selectCoins(totalAmount uint64, coins []types.CoinRecord) ([]*types.Coin, error) {
@@ -132,7 +222,8 @@ func selectCoins(totalAmount uint64, coins []types.CoinRecord) ([]*types.Coin, e
 
 	return aimCoins, nil
 }
-func TxHash(spendBundele types.SpendBundle) (string, error) {
+
+func calTxHash(spendBundele *types.SpendBundle) (string, error) {
 	txHashList := make([]string, 0)
 	txHashList = append(txHashList, formateUint64(uint64(len(spendBundele.CoinSpends))))
 	for _, cs := range spendBundele.CoinSpends {
@@ -150,7 +241,6 @@ func TxHash(spendBundele types.SpendBundle) (string, error) {
 	txHashList = append(txHashList,
 		hex.EncodeToString(types.Bytes96ToBytes(types.Bytes96(spendBundele.AggregatedSignature))))
 	streamTX := strings.Join(txHashList, "")
-	fmt.Println(PrettyStruct(txHashList))
 	streamTX = strings.ReplaceAll(streamTX, "0x", "")
 	m, err := hex.DecodeString(streamTX)
 	if err != nil {

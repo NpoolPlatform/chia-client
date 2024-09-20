@@ -366,6 +366,44 @@ func (s *FullNodeService) GetCoinRecordByName(opts *GetCoinRecordByNameOptions) 
 	return r, resp, nil
 }
 
+// GetCoinRecordByNameOptions request options for /get_coin_record_by_name
+type GetCoinRecordByNamesOptions struct {
+	Names             []string `json:"names"`
+	IncludeSpentCoins bool     `json:"include_spent_coins"`
+}
+
+// GetCoinRecordByNameResponse response from get_coin_record_by_name endpoint
+type GetCoinRecordByNamesResponse struct {
+	Response
+	CoinRecords []CoinRecord `json:"coin_records"`
+}
+
+type CoinRecord struct {
+	Coin                types.Coin      `json:"coin"`
+	ConfirmedBlockIndex uint32          `json:"confirmed_block_index"`
+	SpentBlockIndex     uint32          `json:"spent_block_index"`
+	Spent               bool            `json:"spent"`
+	Coinbase            bool            `json:"coinbase"`
+	Timestamp           types.Timestamp `json:"timestamp"`
+}
+
+// GetCoinRecordsByName request to get_coin_record_by_names endpoint
+func (s *FullNodeService) GetCoinRecordsByNames(opts *GetCoinRecordByNamesOptions) (*GetCoinRecordByNamesResponse, *http.Response, error) {
+	request, err := s.NewRequest("get_coin_records_by_names", opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := &GetCoinRecordByNamesResponse{}
+
+	resp, err := s.Do(request, r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, nil
+}
+
 // GetCoinRecordsByHintOptions options for get_coin_records_by_hint
 type GetCoinRecordsByHintOptions struct {
 	Hint              types.Bytes32 `json:"hint"`
@@ -491,4 +529,30 @@ type GetPuzzleAndSolutionOptions struct {
 type GetPuzzleAndSolutionResponse struct {
 	Response
 	CoinSolution mo.Option[types.CoinSpend] `json:"coin_solution"`
+}
+
+func (s *FullNodeService) CheckTxIDInMempool(opts *CheckTxIDInMempoolOptions) (*CheckTxIDInMempoolResponse, *http.Response, error) {
+	request, err := s.NewRequest("get_mempool_item_by_tx_id", opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := &CheckTxIDInMempoolResponse{}
+
+	resp, err := s.Do(request, r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, nil
+}
+
+// GetPuzzleAndSolutionOptions options for get_puzzle_and_solution rpc call
+type CheckTxIDInMempoolOptions struct {
+	TxID types.Bytes32 `json:"tx_id"`
+}
+
+// GetPuzzleAndSolutionResponse response from get_puzzle_and_solution
+type CheckTxIDInMempoolResponse struct {
+	Response
 }

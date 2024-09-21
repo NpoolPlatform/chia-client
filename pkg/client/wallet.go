@@ -15,11 +15,10 @@ type WalletService struct {
 	*HttpClient
 }
 
-func DefaultWalletService(host string, port uint16) *WalletService {
+func DefaultWalletService(endpoint string) *WalletService {
 	return &WalletService{
 		HttpClient: &HttpClient{
-			host:        host,
-			port:        port,
+			Endpoint:    endpoint,
 			BasePath:    DefaultBasePath,
 			Timeout:     DefaultTimeout,
 			serviceType: rpcinterface.ServiceFullNode,

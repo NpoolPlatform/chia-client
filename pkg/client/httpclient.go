@@ -13,8 +13,7 @@ import (
 
 // WalletService encapsulates wallet RPC methods
 type HttpClient struct {
-	host        string
-	port        uint16
+	Endpoint    string // host:port
 	BasePath    string // http://host:port/basePath/request
 	Timeout     time.Duration
 	serviceType rpcinterface.ServiceType
@@ -47,7 +46,7 @@ func (c *HttpClient) NewRequest(rpcEndpoint rpcinterface.Endpoint, opt interface
 		}
 	}
 
-	url := fmt.Sprintf("http://%v:%v/%v/%v", c.host, c.port, c.BasePath, rpcEndpoint)
+	url := fmt.Sprintf("http://%v/%v/%v", c.Endpoint, c.BasePath, rpcEndpoint)
 
 	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {

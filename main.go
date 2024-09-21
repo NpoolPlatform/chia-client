@@ -15,13 +15,13 @@ func main() {
 }
 
 func TestClient() {
-	cli := client.NewClient("172.16.31.202", 18444)
+	cli := client.NewClient("172.16.31.202:18444")
 	fmt.Println(cli.CheckCoinsIsSpent([]string{"0xd30e03a6bbddfbbb2f9cfc5d2390ea0390ade6f5b2efb336464ba45c4eac805f"}))
 }
 
 func TxDemo() {
 	// ----------------------------Check Node Heath-----------------------------
-	cli := client.NewClient("172.16.31.202", 18444)
+	cli := client.NewClient("172.16.31.202:18444")
 	synced, err := cli.GetSyncStatus()
 	if err != nil {
 		fmt.Println(1, err)

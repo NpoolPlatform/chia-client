@@ -16,10 +16,10 @@ type Client struct {
 	walletService   *WalletService
 }
 
-func NewClient(host string, port uint16) *Client {
+func NewClient(endpoint string) *Client {
 	return &Client{
-		fullNodeService: DefaultFullNodeService(host, port),
-		walletService:   DefaultWalletService(host, port),
+		fullNodeService: DefaultFullNodeService(endpoint),
+		walletService:   DefaultWalletService(endpoint),
 	}
 }
 

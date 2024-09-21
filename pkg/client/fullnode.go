@@ -13,11 +13,10 @@ type FullNodeService struct {
 	*HttpClient
 }
 
-func DefaultFullNodeService(host string, port uint16) *FullNodeService {
+func DefaultFullNodeService(endpoint string) *FullNodeService {
 	return &FullNodeService{
 		HttpClient: &HttpClient{
-			host:        host,
-			port:        port,
+			Endpoint:    endpoint,
 			BasePath:    DefaultBasePath,
 			Timeout:     DefaultTimeout,
 			serviceType: rpcinterface.ServiceFullNode,

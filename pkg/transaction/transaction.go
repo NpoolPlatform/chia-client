@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -56,7 +57,7 @@ func GenSignedSpendBundle(unsignedTx *UnsignedTx, fromSKHex string) (*types.Spen
 	return &spendBundle, nil
 }
 
-func GenUnsignedTx(cli *client.Client, from, to string, amount, fee uint64) (*UnsignedTx, error) {
+func GenUnsignedTx(ctx context.Context, cli *client.Client, from, to string, amount, fee uint64) (*UnsignedTx, error) {
 	unsignedTx := &UnsignedTx{
 		From: from,
 	}
@@ -71,7 +72,7 @@ func GenUnsignedTx(cli *client.Client, from, to string, amount, fee uint64) (*Un
 		return nil, fmt.Errorf("invalid format for to address,err: %v", err)
 	}
 
-	selectedCoins, err := cli.SelectCoins(amount+fee, *fromPH)
+	selectedCoins, err := cli.SelectCoins(ctx, amount+fee, *fromPH)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select coins,err: %v", err)
 	}

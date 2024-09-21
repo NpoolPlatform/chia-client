@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/NpoolPlatform/chia-client/pkg/client"
@@ -16,13 +17,13 @@ func main() {
 
 func TestClient() {
 	cli := client.NewClient("172.16.31.202:18444")
-	fmt.Println(cli.CheckCoinsIsSpent([]string{"0xd30e03a6bbddfbbb2f9cfc5d2390ea0390ade6f5b2efb336464ba45c4eac805f"}))
+	fmt.Println(cli.CheckCoinsIsSpent(context.Background(), []string{"0xd30e03a6bbddfbbb2f9cfc5d2390ea0390ade6f5b2efb336464ba45c4eac805f"}))
 }
 
 func TxDemo() {
 	// ----------------------------Check Node Heath-----------------------------
 	cli := client.NewClient("172.16.31.202:18444")
-	synced, err := cli.GetSyncStatus()
+	synced, err := cli.GetSyncStatus(context.Background())
 	if err != nil {
 		fmt.Println(1, err)
 		return
@@ -38,7 +39,7 @@ func TxDemo() {
 	Amount := uint64(0x7f81)
 	Fee := uint64(100)
 
-	unsignedTx, err := transaction.GenUnsignedTx(cli, From, To, Amount, Fee)
+	unsignedTx, err := transaction.GenUnsignedTx(context.Background(), cli, From, To, Amount, Fee)
 	if err != nil {
 		fmt.Println(2, err)
 		return
@@ -58,13 +59,13 @@ func TxDemo() {
 	// ----------------------------BroadcostTX-----------------------------
 	fmt.Println(client.PrettyStruct(spendBundle))
 
-	txid, err := cli.PushTX(spendBundle)
+	txid, err := cli.PushTX(context.Background(), spendBundle)
 	if err != nil {
 		fmt.Println(4, err)
 		return
 	}
 
 	// ----------------------------SyncTX-----------------------------
-	fmt.Println(cli.CheckTxIDInMempool(txid))
-	fmt.Println(cli.CheckCoinsIsSpent(unsignedTx.SpentCoinIDs))
+	fmt.Println(cli.CheckTxIDInMempool(context.Background(), txid))
+	fmt.Println(cli.CheckCoinsIsSpent(context.Background(), unsignedTx.SpentCoinIDs))
 }

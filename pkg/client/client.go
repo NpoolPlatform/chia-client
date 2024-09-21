@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -23,8 +24,8 @@ func NewClient(endpoint string) *Client {
 	}
 }
 
-func (cli *Client) GetSyncStatus() (bool, error) {
-	resp, httpResp, err := cli.fullNodeService.GetBlockchainState()
+func (cli *Client) GetSyncStatus(ctx context.Context) (bool, error) {
+	resp, httpResp, err := cli.fullNodeService.GetBlockchainState(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -45,8 +46,8 @@ func (cli *Client) GetSyncStatus() (bool, error) {
 	return syncState.Synced, nil
 }
 
-func (cli *Client) GetBalance(puzzleHash types.Bytes32) (uint64, error) {
-	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByPuzzleHash(&GetCoinRecordsByPuzzleHashOptions{
+func (cli *Client) GetBalance(ctx context.Context, puzzleHash types.Bytes32) (uint64, error) {
+	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByPuzzleHash(ctx, &GetCoinRecordsByPuzzleHashOptions{
 		PuzzleHash:        puzzleHash,
 		IncludeSpentCoins: false,
 	})
@@ -80,8 +81,8 @@ func (cli *Client) GetBalance(puzzleHash types.Bytes32) (uint64, error) {
 	return total, nil
 }
 
-func (cli *Client) SelectCoins(totalAmount uint64, puzzleHash types.Bytes32) ([]*types.Coin, error) {
-	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByPuzzleHash(&GetCoinRecordsByPuzzleHashOptions{
+func (cli *Client) SelectCoins(ctx context.Context, totalAmount uint64, puzzleHash types.Bytes32) ([]*types.Coin, error) {
+	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByPuzzleHash(ctx, &GetCoinRecordsByPuzzleHashOptions{
 		PuzzleHash:        puzzleHash,
 		IncludeSpentCoins: false,
 	})
@@ -105,8 +106,8 @@ func (cli *Client) SelectCoins(totalAmount uint64, puzzleHash types.Bytes32) ([]
 	return selectCoins(totalAmount, resp.CoinRecords)
 }
 
-func (cli *Client) PushTX(SpendBundle *types.SpendBundle) (string, error) {
-	resp, httpResp, err := cli.fullNodeService.PushTX(&FullNodePushTXOptions{*SpendBundle})
+func (cli *Client) PushTX(ctx context.Context, SpendBundle *types.SpendBundle) (string, error) {
+	resp, httpResp, err := cli.fullNodeService.PushTX(ctx, &FullNodePushTXOptions{*SpendBundle})
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +131,7 @@ func (cli *Client) PushTX(SpendBundle *types.SpendBundle) (string, error) {
 	return calTxHash(SpendBundle)
 }
 
-func (cli *Client) CheckTxIDInMempool(txid string) (bool, error) {
+func (cli *Client) CheckTxIDInMempool(ctx context.Context, txid string) (bool, error) {
 	txidBytes, err := hex.DecodeString(txid)
 	if err != nil {
 		return false, fmt.Errorf("invalid txid,err: %v", err)
@@ -141,7 +142,7 @@ func (cli *Client) CheckTxIDInMempool(txid string) (bool, error) {
 		return false, fmt.Errorf("invalid txid,err: %v", err)
 	}
 
-	resp, httpResp, err := cli.fullNodeService.CheckTxIDInMempool(&CheckTxIDInMempoolOptions{
+	resp, httpResp, err := cli.fullNodeService.CheckTxIDInMempool(ctx, &CheckTxIDInMempoolOptions{
 		TxID: txidBytes32,
 	})
 
@@ -174,8 +175,8 @@ func (cli *Client) CheckTxIDInMempool(txid string) (bool, error) {
 }
 
 // all coin spent return true
-func (cli *Client) CheckCoinsIsSpent(coinids []string) (bool, error) {
-	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByNames(
+func (cli *Client) CheckCoinsIsSpent(ctx context.Context, coinids []string) (bool, error) {
+	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByNames(ctx,
 		&GetCoinRecordByNamesOptions{
 			Names:             coinids,
 			IncludeSpentCoins: true,

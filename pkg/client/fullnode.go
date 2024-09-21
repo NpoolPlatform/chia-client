@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/samber/mo"
@@ -36,8 +37,8 @@ type GetConnectionsResponse struct {
 }
 
 // GetConnections returns connections
-func (s *FullNodeService) GetConnections(opts *GetConnectionsOptions) (*GetConnectionsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_connections", opts)
+func (s *FullNodeService) GetConnections(ctx context.Context, opts *GetConnectionsOptions) (*GetConnectionsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_connections", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -52,8 +53,8 @@ func (s *FullNodeService) GetConnections(opts *GetConnectionsOptions) (*GetConne
 }
 
 // GetNetworkInfo gets the network name and prefix from the full node
-func (s *FullNodeService) GetNetworkInfo(opts *GetNetworkInfoOptions) (*GetNetworkInfoResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_network_info", opts)
+func (s *FullNodeService) GetNetworkInfo(ctx context.Context, opts *GetNetworkInfoOptions) (*GetNetworkInfoResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_network_info", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,8 +76,8 @@ type GetBlockchainStateResponse struct {
 }
 
 // GetVersion returns the application version for the service
-func (s *FullNodeService) GetVersion(opts *GetVersionOptions) (*GetVersionResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_version", opts)
+func (s *FullNodeService) GetVersion(ctx context.Context, opts *GetVersionOptions) (*GetVersionResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_version", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -91,8 +92,8 @@ func (s *FullNodeService) GetVersion(opts *GetVersionOptions) (*GetVersionRespon
 }
 
 // GetBlockchainState returns blockchain state
-func (s *FullNodeService) GetBlockchainState() (*GetBlockchainStateResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_blockchain_state", nil)
+func (s *FullNodeService) GetBlockchainState(ctx context.Context) (*GetBlockchainStateResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_blockchain_state", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -118,8 +119,8 @@ type GetBlockResponse struct {
 }
 
 // GetBlock full_node->get_block RPC method
-func (s *FullNodeService) GetBlock(opts *GetBlockOptions) (*GetBlockResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_block", opts)
+func (s *FullNodeService) GetBlock(ctx context.Context, opts *GetBlockOptions) (*GetBlockResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_block", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,8 +151,8 @@ type GetBlocksResponse struct {
 }
 
 // GetBlocks full_node->get_blocks RPC method
-func (s *FullNodeService) GetBlocks(opts *GetBlocksOptions) (*GetBlocksResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_blocks", opts)
+func (s *FullNodeService) GetBlocks(ctx context.Context, opts *GetBlocksOptions) (*GetBlocksResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_blocks", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -172,8 +173,8 @@ type GetBlockCountMetricsResponse struct {
 }
 
 // GetBlockCountMetrics gets metrics about blocks
-func (s *FullNodeService) GetBlockCountMetrics() (*GetBlockCountMetricsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_block_count_metrics", nil)
+func (s *FullNodeService) GetBlockCountMetrics(ctx context.Context) (*GetBlockCountMetricsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_block_count_metrics", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -200,9 +201,9 @@ type GetBlockRecordResponse struct {
 }
 
 // GetBlockRecordByHeight full_node->get_block_record_by_height RPC method
-func (s *FullNodeService) GetBlockRecordByHeight(opts *GetBlockByHeightOptions) (*GetBlockRecordResponse, *http.Response, error) {
+func (s *FullNodeService) GetBlockRecordByHeight(ctx context.Context, opts *GetBlockByHeightOptions) (*GetBlockRecordResponse, *http.Response, error) {
 	// Get Block Record
-	request, err := s.NewRequest("get_block_record_by_height", opts)
+	request, err := s.NewRequest(ctx, "get_block_record_by_height", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,14 +223,14 @@ func (s *FullNodeService) GetBlockRecordByHeight(opts *GetBlockByHeightOptions) 
 }
 
 // GetBlockByHeight helper function to get a full block by height, calls full_node->get_block_record_by_height RPC method then full_node->get_block RPC method
-func (s *FullNodeService) GetBlockByHeight(opts *GetBlockByHeightOptions) (*GetBlockResponse, *http.Response, error) {
+func (s *FullNodeService) GetBlockByHeight(ctx context.Context, opts *GetBlockByHeightOptions) (*GetBlockResponse, *http.Response, error) {
 	// Get Block Record
-	record, resp, err := s.GetBlockRecordByHeight(opts)
+	record, resp, err := s.GetBlockRecordByHeight(ctx, opts)
 	if err != nil || record == nil {
 		return nil, resp, err
 	}
 
-	request, err := s.NewRequest("get_block", GetBlockOptions{
+	request, err := s.NewRequest(ctx, "get_block", GetBlockOptions{
 		HeaderHash: record.BlockRecord.OrEmpty().HeaderHash,
 	})
 	if err != nil {
@@ -259,8 +260,8 @@ type GetAdditionsAndRemovalsResponse struct {
 }
 
 // GetAdditionsAndRemovals Gets additions and removals for a particular block hash
-func (s *FullNodeService) GetAdditionsAndRemovals(opts *GetAdditionsAndRemovalsOptions) (*GetAdditionsAndRemovalsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_additions_and_removals", opts)
+func (s *FullNodeService) GetAdditionsAndRemovals(ctx context.Context, opts *GetAdditionsAndRemovalsOptions) (*GetAdditionsAndRemovalsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_additions_and_removals", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -290,8 +291,8 @@ type GetCoinRecordsByPuzzleHashResponse struct {
 }
 
 // GetCoinRecordsByPuzzleHash returns coin records for a specified puzzle hash
-func (s *FullNodeService) GetCoinRecordsByPuzzleHash(opts *GetCoinRecordsByPuzzleHashOptions) (*GetCoinRecordsByPuzzleHashResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_coin_records_by_puzzle_hash", opts)
+func (s *FullNodeService) GetCoinRecordsByPuzzleHash(ctx context.Context, opts *GetCoinRecordsByPuzzleHashOptions) (*GetCoinRecordsByPuzzleHashResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_coin_records_by_puzzle_hash", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -321,8 +322,8 @@ type GetCoinRecordsByPuzzleHashesResponse struct {
 }
 
 // GetCoinRecordsByPuzzleHashes returns coin records for a specified list of puzzle hashes
-func (s *FullNodeService) GetCoinRecordsByPuzzleHashes(opts *GetCoinRecordsByPuzzleHashesOptions) (*GetCoinRecordsByPuzzleHashesResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_coin_records_by_puzzle_hashes", opts)
+func (s *FullNodeService) GetCoinRecordsByPuzzleHashes(ctx context.Context, opts *GetCoinRecordsByPuzzleHashesOptions) (*GetCoinRecordsByPuzzleHashesResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_coin_records_by_puzzle_hashes", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -349,8 +350,8 @@ type GetCoinRecordByNameResponse struct {
 }
 
 // GetCoinRecordByName request to get_coin_record_by_name endpoint
-func (s *FullNodeService) GetCoinRecordByName(opts *GetCoinRecordByNameOptions) (*GetCoinRecordByNameResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_coin_record_by_name", opts)
+func (s *FullNodeService) GetCoinRecordByName(ctx context.Context, opts *GetCoinRecordByNameOptions) (*GetCoinRecordByNameResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_coin_record_by_name", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -387,8 +388,8 @@ type CoinRecord struct {
 }
 
 // GetCoinRecordsByName request to get_coin_record_by_names endpoint
-func (s *FullNodeService) GetCoinRecordsByNames(opts *GetCoinRecordByNamesOptions) (*GetCoinRecordByNamesResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_coin_records_by_names", opts)
+func (s *FullNodeService) GetCoinRecordsByNames(ctx context.Context, opts *GetCoinRecordByNamesOptions) (*GetCoinRecordByNamesResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_coin_records_by_names", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -418,8 +419,8 @@ type GetCoinRecordsByHintResponse struct {
 }
 
 // GetCoinRecordsByHint returns coin records for a specified puzzle hash
-func (s *FullNodeService) GetCoinRecordsByHint(opts *GetCoinRecordsByHintOptions) (*GetCoinRecordsByHintResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_coin_records_by_hint", opts)
+func (s *FullNodeService) GetCoinRecordsByHint(ctx context.Context, opts *GetCoinRecordsByHintOptions) (*GetCoinRecordsByHintResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_coin_records_by_hint", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -446,8 +447,8 @@ type FullNodePushTXResponse struct {
 }
 
 // PushTX pushes a transaction to the full node
-func (s *FullNodeService) PushTX(opts *FullNodePushTXOptions) (*FullNodePushTXResponse, *http.Response, error) {
-	request, err := s.NewRequest("push_tx", opts)
+func (s *FullNodeService) PushTX(ctx context.Context, opts *FullNodePushTXOptions) (*FullNodePushTXResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "push_tx", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -463,8 +464,8 @@ func (s *FullNodeService) PushTX(opts *FullNodePushTXOptions) (*FullNodePushTXRe
 }
 
 // GetPuzzleAndSolution full_node-> get_puzzle_and_solution RPC method
-func (s *FullNodeService) GetPuzzleAndSolution(opts *GetPuzzleAndSolutionOptions) (*GetPuzzleAndSolutionResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_puzzle_and_solution", opts)
+func (s *FullNodeService) GetPuzzleAndSolution(ctx context.Context, opts *GetPuzzleAndSolutionOptions) (*GetPuzzleAndSolutionResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_puzzle_and_solution", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -502,8 +503,8 @@ type GetFeeEstimateResponse struct {
 }
 
 // GetFeeEstimate endpoint
-func (s *FullNodeService) GetFeeEstimate(opts *GetFeeEstimateOptions) (*GetFeeEstimateResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_fee_estimate", opts)
+func (s *FullNodeService) GetFeeEstimate(ctx context.Context, opts *GetFeeEstimateOptions) (*GetFeeEstimateResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_fee_estimate", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -530,8 +531,8 @@ type GetPuzzleAndSolutionResponse struct {
 	CoinSolution mo.Option[types.CoinSpend] `json:"coin_solution"`
 }
 
-func (s *FullNodeService) CheckTxIDInMempool(opts *CheckTxIDInMempoolOptions) (*CheckTxIDInMempoolResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_mempool_item_by_tx_id", opts)
+func (s *FullNodeService) CheckTxIDInMempool(ctx context.Context, opts *CheckTxIDInMempoolOptions) (*CheckTxIDInMempoolResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_mempool_item_by_tx_id", opts)
 	if err != nil {
 		return nil, nil, err
 	}

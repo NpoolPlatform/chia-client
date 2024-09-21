@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -49,8 +50,8 @@ func (c *WalletService) Do(req *rpcinterface.Request, v interface{}) (*http.Resp
 }
 
 // GetConnections returns connections
-func (s *WalletService) GetConnections(opts *GetConnectionsOptions) (*GetConnectionsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_connections", opts)
+func (s *WalletService) GetConnections(ctx context.Context, opts *GetConnectionsOptions) (*GetConnectionsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_connections", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -65,8 +66,8 @@ func (s *WalletService) GetConnections(opts *GetConnectionsOptions) (*GetConnect
 }
 
 // GetNetworkInfo wallet rpc -> get_network_info
-func (s *WalletService) GetNetworkInfo(opts *GetNetworkInfoOptions) (*GetNetworkInfoResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_network_info", nil)
+func (s *WalletService) GetNetworkInfo(ctx context.Context, opts *GetNetworkInfoOptions) (*GetNetworkInfoResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_network_info", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,8 +82,8 @@ func (s *WalletService) GetNetworkInfo(opts *GetNetworkInfoOptions) (*GetNetwork
 }
 
 // GetVersion returns the application version for the service
-func (s *WalletService) GetVersion(opts *GetVersionOptions) (*GetVersionResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_version", opts)
+func (s *WalletService) GetVersion(ctx context.Context, opts *GetVersionOptions) (*GetVersionResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_version", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -103,8 +104,8 @@ type GetPublicKeysResponse struct {
 }
 
 // GetPublicKeys endpoint
-func (s *WalletService) GetPublicKeys() (*GetPublicKeysResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_public_keys", nil)
+func (s *WalletService) GetPublicKeys(ctx context.Context) (*GetPublicKeysResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_public_keys", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -125,8 +126,8 @@ type GenerateMnemonicResponse struct {
 }
 
 // GenerateMnemonic Endpoint for generating a new random 24 words
-func (s *WalletService) GenerateMnemonic() (*GenerateMnemonicResponse, *http.Response, error) {
-	request, err := s.NewRequest("generate_mnemonic", nil)
+func (s *WalletService) GenerateMnemonic(ctx context.Context) (*GenerateMnemonicResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "generate_mnemonic", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -153,8 +154,8 @@ type AddKeyResponse struct {
 }
 
 // AddKey Adds a new key from 24 words to the keychain
-func (s *WalletService) AddKey(options *AddKeyOptions) (*AddKeyResponse, *http.Response, error) {
-	request, err := s.NewRequest("add_key", options)
+func (s *WalletService) AddKey(ctx context.Context, options *AddKeyOptions) (*AddKeyResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "add_key", options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -174,8 +175,8 @@ type DeleteAllKeysResponse struct {
 }
 
 // DeleteAllKeys deletes all keys from the keychain
-func (s *WalletService) DeleteAllKeys() (*DeleteAllKeysResponse, *http.Response, error) {
-	request, err := s.NewRequest("delete_all_keys", nil)
+func (s *WalletService) DeleteAllKeys(ctx context.Context) (*DeleteAllKeysResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "delete_all_keys", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -203,8 +204,8 @@ type GetNextAddressResponse struct {
 }
 
 // GetNextAddress returns the current address for the wallet. If NewAddress is true, it moves to the next address before responding
-func (s *WalletService) GetNextAddress(options *GetNextAddressOptions) (*GetNextAddressResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_next_address", options)
+func (s *WalletService) GetNextAddress(ctx context.Context, options *GetNextAddressOptions) (*GetNextAddressResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_next_address", options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -233,8 +234,8 @@ type GetWalletHeightInfoResponse struct {
 }
 
 // GetHeightInfo wallet rpc -> get_height_info
-func (s *WalletService) GetHeightInfo() (*GetWalletHeightInfoResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_height_info", nil)
+func (s *WalletService) GetHeightInfo(ctx context.Context) (*GetWalletHeightInfoResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_height_info", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -261,8 +262,8 @@ type GetWalletsResponse struct {
 }
 
 // GetWallets wallet rpc -> get_wallets
-func (s *WalletService) GetWallets(opts *GetWalletsOptions) (*GetWalletsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_wallets", opts)
+func (s *WalletService) GetWallets(ctx context.Context, opts *GetWalletsOptions) (*GetWalletsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_wallets", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -288,8 +289,8 @@ type GetWalletBalanceResponse struct {
 }
 
 // GetWalletBalance returns wallet balance
-func (s *WalletService) GetWalletBalance(opts *GetWalletBalanceOptions) (*GetWalletBalanceResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_wallet_balance", opts)
+func (s *WalletService) GetWalletBalance(ctx context.Context, opts *GetWalletBalanceOptions) (*GetWalletBalanceResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_wallet_balance", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -316,8 +317,8 @@ type GetWalletTransactionCountResponse struct {
 }
 
 // GetTransactionCount returns the total count of transactions for the specific wallet ID
-func (s *WalletService) GetTransactionCount(opts *GetWalletTransactionCountOptions) (*GetWalletTransactionCountResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_transaction_count", opts)
+func (s *WalletService) GetTransactionCount(ctx context.Context, opts *GetWalletTransactionCountOptions) (*GetWalletTransactionCountResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_transaction_count", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -347,8 +348,8 @@ type GetWalletTransactionsResponse struct {
 }
 
 // GetTransactions wallet rpc -> get_transactions
-func (s *WalletService) GetTransactions(opts *GetWalletTransactionsOptions) (*GetWalletTransactionsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_transactions", opts)
+func (s *WalletService) GetTransactions(ctx context.Context, opts *GetWalletTransactionsOptions) (*GetWalletTransactionsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_transactions", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -376,8 +377,8 @@ type GetWalletTransactionResponse struct {
 }
 
 // GetTransaction returns a single transaction record
-func (s *WalletService) GetTransaction(opts *GetWalletTransactionOptions) (*GetWalletTransactionResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_transaction", opts)
+func (s *WalletService) GetTransaction(ctx context.Context, opts *GetWalletTransactionOptions) (*GetWalletTransactionResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_transaction", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -409,8 +410,8 @@ type SendTransactionResponse struct {
 }
 
 // SendTransaction sends a transaction
-func (s *WalletService) SendTransaction(opts *SendTransactionOptions) (*SendTransactionResponse, *http.Response, error) {
-	request, err := s.NewRequest("send_transaction", opts)
+func (s *WalletService) SendTransaction(ctx context.Context, opts *SendTransactionOptions) (*SendTransactionResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "send_transaction", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -440,8 +441,8 @@ type CatSpendResponse struct {
 }
 
 // CatSpend sends a transaction
-func (s *WalletService) CatSpend(opts *CatSpendOptions) (*CatSpendResponse, *http.Response, error) {
-	request, err := s.NewRequest("cat_spend", opts)
+func (s *WalletService) CatSpend(ctx context.Context, opts *CatSpendOptions) (*CatSpendResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "cat_spend", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -481,8 +482,8 @@ type MintNFTResponse struct {
 }
 
 // MintNFT Mint a new NFT
-func (s *WalletService) MintNFT(opts *MintNFTOptions) (*MintNFTResponse, *http.Response, error) {
-	request, err := s.NewRequest("nft_mint_nft", opts)
+func (s *WalletService) MintNFT(ctx context.Context, opts *MintNFTOptions) (*MintNFTResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "nft_mint_nft", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -511,8 +512,8 @@ type GetNFTsResponse struct {
 }
 
 // GetNFTs Show all NFTs in a given wallet
-func (s *WalletService) GetNFTs(opts *GetNFTsOptions) (*GetNFTsResponse, *http.Response, error) {
-	request, err := s.NewRequest("nft_get_nfts", opts)
+func (s *WalletService) GetNFTs(ctx context.Context, opts *GetNFTsOptions) (*GetNFTsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "nft_get_nfts", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -542,8 +543,8 @@ type TransferNFTResponse struct {
 }
 
 // TransferNFT Get info about an NFT
-func (s *WalletService) TransferNFT(opts *TransferNFTOptions) (*TransferNFTResponse, *http.Response, error) {
-	request, err := s.NewRequest("nft_transfer_nft", opts)
+func (s *WalletService) TransferNFT(ctx context.Context, opts *TransferNFTOptions) (*TransferNFTResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "nft_transfer_nft", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -570,8 +571,8 @@ type GetNFTInfoResponse struct {
 }
 
 // GetNFTInfo Get info about an NFT
-func (s *WalletService) GetNFTInfo(opts *GetNFTInfoOptions) (*GetNFTInfoResponse, *http.Response, error) {
-	request, err := s.NewRequest("nft_get_info", opts)
+func (s *WalletService) GetNFTInfo(ctx context.Context, opts *GetNFTInfoOptions) (*GetNFTInfoResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "nft_get_info", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -602,8 +603,8 @@ type NFTAddURIResponse struct {
 }
 
 // NFTAddURI Get info about an NFT
-func (s *WalletService) NFTAddURI(opts *NFTAddURIOptions) (*NFTAddURIResponse, *http.Response, error) {
-	request, err := s.NewRequest("nft_add_uri", opts)
+func (s *WalletService) NFTAddURI(ctx context.Context, opts *NFTAddURIOptions) (*NFTAddURIResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "nft_add_uri", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -629,8 +630,8 @@ type NFTGetByDidResponse struct {
 }
 
 // NFTGetByDid Get wallet ID by DID
-func (s *WalletService) NFTGetByDid(opts *NFTGetByDidOptions) (*NFTGetByDidResponse, *http.Response, error) {
-	request, err := s.NewRequest("nft_get_by_did", opts)
+func (s *WalletService) NFTGetByDid(ctx context.Context, opts *NFTGetByDidOptions) (*NFTGetByDidResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "nft_get_by_did", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -661,8 +662,8 @@ type GetSpendableCoinsResponse struct {
 }
 
 // GetSpendableCoins returns information about the coins in the wallet
-func (s *WalletService) GetSpendableCoins(opts *GetSpendableCoinsOptions) (*GetSpendableCoinsResponse, *http.Response, error) {
-	request, err := s.NewRequest("get_spendable_coins", opts)
+func (s *WalletService) GetSpendableCoins(ctx context.Context, opts *GetSpendableCoinsOptions) (*GetSpendableCoinsResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_spendable_coins", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -696,8 +697,8 @@ type CreateSignedTransactionResponse struct {
 }
 
 // CreateSignedTransaction generates a signed transaction based on the specified options
-func (s *WalletService) CreateSignedTransaction(opts *CreateSignedTransactionOptions) (*CreateSignedTransactionResponse, *http.Response, error) {
-	request, err := s.NewRequest("create_signed_transaction", opts)
+func (s *WalletService) CreateSignedTransaction(ctx context.Context, opts *CreateSignedTransactionOptions) (*CreateSignedTransactionResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "create_signed_transaction", opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -720,8 +721,8 @@ type SendTransactionMultiResponse struct {
 
 // SendTransactionMulti allows sending a more detailed transaction with multiple inputs/outputs.
 // Options are the same as create signed transaction since this is ultimately just a wrapper around that in Chia
-func (s *WalletService) SendTransactionMulti(opts *CreateSignedTransactionOptions) (*SendTransactionMultiResponse, *http.Response, error) {
-	request, err := s.NewRequest("send_transaction_multi", opts)
+func (s *WalletService) SendTransactionMulti(ctx context.Context, opts *CreateSignedTransactionOptions) (*SendTransactionMultiResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "send_transaction_multi", opts)
 	if err != nil {
 		return nil, nil, err
 	}

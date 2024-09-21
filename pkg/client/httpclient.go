@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,7 +21,7 @@ type HttpClient struct {
 }
 
 // NewRequest creates an RPC request for the specified service
-func (c *HttpClient) NewRequest(rpcEndpoint rpcinterface.Endpoint, opt interface{}) (*rpcinterface.Request, error) {
+func (c *HttpClient) NewRequest(ctx context.Context, rpcEndpoint rpcinterface.Endpoint, opt interface{}) (*rpcinterface.Request, error) {
 	// Always POST
 	// Supporting it as a variable in case that changes in the future, it can be passed in instead
 	method := http.MethodPost
@@ -48,7 +49,7 @@ func (c *HttpClient) NewRequest(rpcEndpoint rpcinterface.Endpoint, opt interface
 
 	url := fmt.Sprintf("http://%v/%v/%v", c.Endpoint, c.BasePath, rpcEndpoint)
 
-	req, err := http.NewRequest(method, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

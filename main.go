@@ -57,5 +57,14 @@ func TxDemo() {
 
 	// ----------------------------BroadcostTX-----------------------------
 	fmt.Println(client.PrettyStruct(spendBundle))
-	fmt.Println(cli.PushTX(spendBundle))
+
+	txid, err := cli.PushTX(spendBundle)
+	if err != nil {
+		fmt.Println(4, err)
+		return
+	}
+
+	// ----------------------------SyncTX-----------------------------
+	fmt.Println(cli.CheckTxIDInMempool(txid))
+	fmt.Println(cli.CheckCoinsIsSpent(unsignedTx.SpentCoinIDs))
 }

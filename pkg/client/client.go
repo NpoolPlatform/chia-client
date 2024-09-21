@@ -130,9 +130,19 @@ func (cli *Client) PushTX(SpendBundle *types.SpendBundle) (string, error) {
 	return calTxHash(SpendBundle)
 }
 
-func (cli *Client) CheckTxIDInMempool(txid types.Bytes32) (bool, error) {
+func (cli *Client) CheckTxIDInMempool(txid string) (bool, error) {
+	txidBytes, err := hex.DecodeString(txid)
+	if err != nil {
+		return false, fmt.Errorf("invalid txid,err: %v", err)
+	}
+
+	txidBytes32, err := types.BytesToBytes32(txidBytes)
+	if err != nil {
+		return false, fmt.Errorf("invalid txid,err: %v", err)
+	}
+
 	resp, httpResp, err := cli.fullNodeService.CheckTxIDInMempool(&CheckTxIDInMempoolOptions{
-		TxID: txid,
+		TxID: txidBytes32,
 	})
 
 	if err != nil {

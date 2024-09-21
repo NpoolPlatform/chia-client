@@ -13,8 +13,7 @@ type UnsignedTx struct {
 }
 
 type UnsignedSpend struct {
-	SpentCoinIDs []string
-	Coin         *types.Coin
-	Solution     []byte
-	Message      string
+	Coin     *types.Coin
+	Solution []byte
+	Message  string
 }

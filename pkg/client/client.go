@@ -9,6 +9,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
 	"github.com/chia-network/go-chia-libs/pkg/types"
 )
 
@@ -46,9 +47,14 @@ func (cli *Client) GetSyncStatus(ctx context.Context) (bool, error) {
 	return syncState.Synced, nil
 }
 
-func (cli *Client) GetBalance(ctx context.Context, puzzleHash types.Bytes32) (uint64, error) {
+func (cli *Client) GetBalance(ctx context.Context, address string) (uint64, error) {
+	_, addressPH, err := puzzlehash.GetPuzzleHashFromAddress(address)
+	if err != nil || addressPH == nil {
+		return 0, fmt.Errorf("invalid address,err: %v", err)
+	}
+
 	resp, httpResp, err := cli.fullNodeService.GetCoinRecordsByPuzzleHash(ctx, &GetCoinRecordsByPuzzleHashOptions{
-		PuzzleHash:        puzzleHash,
+		PuzzleHash:        *addressPH,
 		IncludeSpentCoins: false,
 	})
 

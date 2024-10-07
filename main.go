@@ -4,12 +4,37 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/NpoolPlatform/chia-client/pkg/account"
 	"github.com/NpoolPlatform/chia-client/pkg/client"
 	"github.com/NpoolPlatform/chia-client/pkg/transaction"
 )
 
+type TT struct {
+	Txid string
+}
+
+type SS struct {
+	Txid string
+	Tf   string
+	Th   string
+}
+
 func main() {
-	TxDemo()
+	acc, err := account.GenAccount()
+	fmt.Println(err)
+	fmt.Println(acc.GetAddress(true))
+
+	skHex, err := acc.GetSKHex()
+	fmt.Println(err)
+	fmt.Println(skHex)
+
+	skHexBytes := []byte(skHex)
+
+	acc1, err := account.GenAccountBySKHex(string(skHexBytes))
+	fmt.Println(err)
+	fmt.Println(acc1.GetAddress(true))
+
+	// TxDemo()
 	// TestCreateSolution()
 	// TestTreeHash()
 	// TestClient()

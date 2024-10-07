@@ -3,6 +3,7 @@ package account
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/NpoolPlatform/chia-client/pkg/bls"
 	"github.com/NpoolPlatform/chia-client/pkg/puzzlehash"
@@ -21,6 +22,20 @@ const (
 type Account struct {
 	ikm []byte
 	*bls.PrivateKey[bls.G1]
+}
+
+func CheckAddress(address string, mainnet bool) error {
+	prefix, _, err := puzzlehash.GetPuzzleHashFromAddress(address)
+	if err != nil {
+		return err
+	}
+	if mainnet && prefix == PREFIX {
+		return nil
+	}
+	if !mainnet && prefix == TPREFIX {
+		return nil
+	}
+	return fmt.Errorf("invalid address for network")
 }
 
 func GenAccount() (*Account, error) {

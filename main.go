@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NpoolPlatform/chia-client/pkg/account"
 	"github.com/NpoolPlatform/chia-client/pkg/client"
 	"github.com/NpoolPlatform/chia-client/pkg/transaction"
 )
@@ -20,29 +19,29 @@ type SS struct {
 }
 
 func main() {
-	acc, err := account.GenAccount()
-	fmt.Println(err)
-	fmt.Println(acc.GetAddress(true))
+	// acc, err := account.GenAccount()
+	// fmt.Println(err)
+	// fmt.Println(acc.GetAddress(true))
 
-	skHex, err := acc.GetSKHex()
-	fmt.Println(err)
-	fmt.Println(skHex)
+	// skHex, err := acc.GetSKHex()
+	// fmt.Println(err)
+	// fmt.Println(skHex)
 
-	skHexBytes := []byte(skHex)
+	// skHexBytes := []byte(skHex)
 
-	acc1, err := account.GenAccountBySKHex(string(skHexBytes))
-	fmt.Println(err)
-	fmt.Println(acc1.GetAddress(true))
+	// acc1, err := account.GenAccountBySKHex(string(skHexBytes))
+	// fmt.Println(err)
+	// fmt.Println(acc1.GetAddress(true))
 
 	// TxDemo()
 	// TestCreateSolution()
 	// TestTreeHash()
-	// TestClient()
+	TestClient()
 }
 
 func TestClient() {
 	cli := client.NewClient("172.16.31.202:18444")
-	fmt.Println(cli.CheckCoinsIsSpent(context.Background(), []string{"0xd30e03a6bbddfbbb2f9cfc5d2390ea0390ade6f5b2efb336464ba45c4eac805f"}))
+	fmt.Println(cli.GetAggsigAddtionalData(context.Background()))
 }
 
 func TxDemo() {

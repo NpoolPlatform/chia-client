@@ -556,3 +556,30 @@ type CheckTxIDInMempoolOptions struct {
 type CheckTxIDInMempoolResponse struct {
 	Response
 }
+
+// FullNodePushTXOptions options for pushing tx to full node mempool
+type GetAggsigAddtionalDataOptions struct {
+}
+
+// FullNodePushTXResponse Response from full node push_tx
+type GetAggsigAddtionalDataResponse struct {
+	Response
+	AdditionalData types.Bytes32 `json:"additional_data"`
+}
+
+// PushTX pushes a transaction to the full node
+func (s *FullNodeService) GetAggsigAddtionalData(ctx context.Context, opts *GetAggsigAddtionalDataOptions) (*GetAggsigAddtionalDataResponse, *http.Response, error) {
+	request, err := s.NewRequest(ctx, "get_aggsig_additional_data", opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r := &GetAggsigAddtionalDataResponse{}
+
+	resp, err := s.Do(request, r)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return r, resp, nil
+}

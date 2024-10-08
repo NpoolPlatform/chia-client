@@ -47,6 +47,27 @@ func (cli *Client) GetSyncStatus(ctx context.Context) (bool, error) {
 	return syncState.Synced, nil
 }
 
+func (cli *Client) GetAggsigAddtionalData(ctx context.Context) (*types.Bytes32, error) {
+	resp, httpResp, err := cli.fullNodeService.GetAggsigAddtionalData(ctx, &GetAggsigAddtionalDataOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to request,status code:%v", httpResp.StatusCode)
+	}
+
+	if resp == nil || !resp.Success {
+		return nil, fmt.Errorf("cannot get response from node")
+	}
+
+	if resp.Error.ToPointer() != nil {
+		return nil, fmt.Errorf(*resp.Error.ToPointer())
+	}
+
+	return &resp.AdditionalData, nil
+}
+
 func (cli *Client) GetBalance(ctx context.Context, address string) (uint64, error) {
 	_, addressPH, err := puzzlehash.GetPuzzleHashFromAddress(address)
 	if err != nil || addressPH == nil {

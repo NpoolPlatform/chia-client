@@ -98,6 +98,11 @@ func GenUnsignedTx(ctx context.Context, cli *client.Client, from, to string, amo
 		return nil, fmt.Errorf("failed to generate assert solution,err: %v", err)
 	}
 
+	aggsigData, err := cli.GetAggsigAddtionalData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get aggsig data,err: %v", err)
+	}
+
 	spends := []*UnsignedSpend{
 		{
 			Coin:     selectedCoins[0],
@@ -110,12 +115,13 @@ func GenUnsignedTx(ctx context.Context, cli *client.Client, from, to string, amo
 				change,
 				fee,
 				selectedCoins[0],
+				*aggsigData,
 			),
 		},
 	}
 
 	for _, coin := range selectedCoins[1:] {
-		assertMsg, err := genUnsignedAssertMessage(createAnnounceMSG, selectedCoins[0], coin)
+		assertMsg, err := genUnsignedAssertMessage(createAnnounceMSG, selectedCoins[0], coin, *aggsigData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate unsigned assert message,err: %v", err)
 		}
@@ -131,13 +137,13 @@ func GenUnsignedTx(ctx context.Context, cli *client.Client, from, to string, amo
 	return unsignedTx, nil
 }
 
-func genUnsignedCreateMessage(announceMsg, toPH, fromPH []byte, amount, change, fee uint64, firstCoin *types.Coin) string {
+func genUnsignedCreateMessage(announceMsg, toPH, fromPH []byte, amount, change, fee uint64, firstCoin *types.Coin, aggsigData types.Bytes32) string {
 	cCTreeHash := conditionCreateTreeHash(announceMsg, toPH, fromPH, amount, change, fee)
-	unsignMsg := cCTreeHash + hex.EncodeToString(types.Bytes32ToBytes(firstCoin.ID())) + aggsig_data
+	unsignMsg := cCTreeHash + hex.EncodeToString(types.Bytes32ToBytes(firstCoin.ID())) + hex.EncodeToString(types.Bytes32ToBytes(aggsigData))
 	return unsignMsg
 }
 
-func genUnsignedAssertMessage(announceMsg []byte, firstCoin, coin *types.Coin) (string, error) {
+func genUnsignedAssertMessage(announceMsg []byte, firstCoin, coin *types.Coin, aggsigData types.Bytes32) (string, error) {
 	s := sha256.New()
 	_, err := s.Write(append(types.Bytes32ToBytes(firstCoin.ID()), announceMsg...))
 	if err != nil {
@@ -146,7 +152,7 @@ func genUnsignedAssertMessage(announceMsg []byte, firstCoin, coin *types.Coin) (
 	announcementID := s.Sum(nil)
 	assertTreeHash := conditionAssertTreeHash(announcementID)
 
-	unsignMsg := assertTreeHash + hex.EncodeToString(types.Bytes32ToBytes(coin.ID())) + aggsig_data
+	unsignMsg := assertTreeHash + hex.EncodeToString(types.Bytes32ToBytes(coin.ID())) + hex.EncodeToString(types.Bytes32ToBytes(aggsigData))
 	return unsignMsg, nil
 }
 
